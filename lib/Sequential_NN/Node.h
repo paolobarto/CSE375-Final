@@ -9,12 +9,13 @@ private:
     vector<Node> nextNodes;
     vector<Node> prevNodes;
 public:
-    float weight;
+    vector<float> weight;
     float value = 0;
     Node();
-    Node(int id, int layer, int weight);
-    Node(int id, int layer, int weight, vector<Node> prevNodes);
-    float calculateOutput(float input, float (*activationFunction)(float));
+    Node(int id, int layer);
+    Node(int id, int layer, vector<float> weight);
+    Node(int id, int layer, vector<float> weight, vector<Node> prevNodes);
+    float calculateOutput(float input, int nextNodeIndex, float (*activationFunction)(float));
     ~Node();
 };
 
@@ -22,12 +23,21 @@ Node::Node()
 {
     id = 0;
     layer = 0;
-    weight = 0;
+    weight = vector<float>();
     prevNodes = vector<Node>();
     nextNodes = vector<Node>();
 }
 
-Node::Node(int id, int layer, int weight)
+Node::Node(int id, int layer)
+{
+    this->id = id;
+    this->layer = layer;
+    weight = vector<float>();
+    prevNodes = vector<Node>();
+    nextNodes = vector<Node>();
+}
+
+Node::Node(int id, int layer, vector<float> weight)
 {
     this->id = id;
     this->layer = layer;
@@ -36,7 +46,7 @@ Node::Node(int id, int layer, int weight)
     nextNodes = vector<Node>();
 }
 
-Node::Node(int id, int layer, int weight, vector<Node> prevNodes)
+Node::Node(int id, int layer, vector<float> weight, vector<Node> prevNodes)
 {
     this->id = id;
     this->layer = layer;
@@ -46,9 +56,9 @@ Node::Node(int id, int layer, int weight, vector<Node> prevNodes)
 }
 
 
-float Node::calculateOutput(float input, float (*activationFunction)(float))
+float Node::calculateOutput(float input, int nextNodeIndex, float (*activationFunction)(float))
 {
-    this->value =  activationFunction(input * weight);
+    this->value =  activationFunction(input * weight[nextNodeIndex]);
     return this->value;
 }
 

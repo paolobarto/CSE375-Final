@@ -1,6 +1,7 @@
 #include "Layer.h"
 #include "../MNIST/MNIST_Image.h"
 #include <math.h>
+#include <iostream>
 
 using namespace std;
 
@@ -12,10 +13,14 @@ private:
     vector<Layer> layers;
 public:
     NeuralNetwork();
-    void addLayer(Layer layer);
     void CreateNetwork(int inputSize,int hiddenLayerSize, int outputSize, int hiddenLayers);
     void ForwardPropagateImage(MNIST_Image img);
     void BackPropagateImage(MNIST_Image img);
+    void AddLayer(Layer& layer);
+    void UpdateLastHidden();
+    float Sigmoid(float x);
+    float DerivativeSigmoid(float x);
+    float GetRandomWeight();
     ~NeuralNetwork();
 };
 
@@ -27,18 +32,13 @@ NeuralNetwork::NeuralNetwork()
 }
 
 
-void NeuralNetwork::addLayer(Layer layer)
-{
-    layers.push_back(layer);
-}
-
 void NeuralNetwork::CreateNetwork(int inputSize, int hiddenLayerSize, int outputSize, int hiddenLayers)
 {
     // Create input layer
     Layer inputLayer = Layer();
     for (int i = 0; i < inputSize; i++)
     {
-        Node n = Node(i, 0, -3 + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(5-(-3)))));
+        Node n = Node(i, 0);
         inputLayer.addNode(n);
     }
     this->input = inputLayer;
@@ -52,20 +52,21 @@ void NeuralNetwork::CreateNetwork(int inputSize, int hiddenLayerSize, int output
         Layer hiddenLayer = Layer(previousLayer.nodes);
         for (int j = 0; j < hiddenLayerSize; j++)
         {
-            Node n = Node(j, i + 1, -3 + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(5-(-3)))));
+            Node n = Node(j, i + 1);
             hiddenLayer.addNode(n);
         }
-        layers.push_back(hiddenLayer);
+        this->AddLayer(hiddenLayer);
     }
 
     // Create output layer
     Layer outputLayer = Layer();
     for (int i = 0; i < outputSize; i++)
     {
-        Node n = Node(i, layers.size(), 1);
+        Node n = Node(i, layers.size());
         outputLayer.addNode(n);
     }
     this->output = outputLayer;
+    this->UpdateLastHidden();
 }
 
 
@@ -115,6 +116,9 @@ void NeuralNetwork::BackPropagateImage(MNIST_Image img)
 
     //calculate error for node in hidden layer
     // partial derivative of error with respect to weight = 
+
+
+
     
 
     for(int i=0; i<output.nodes.size(); i++)
@@ -137,13 +141,13 @@ void NeuralNetwork::BackPropagateImage(MNIST_Image img)
                 if(j==this->layers.size()-1)
                 {
                     // if current layer is output layer
-                    float partialEofW = partialEofY * derivativeSigmoid(currNode.value);
+                    float partialEofW = partialEofY * DerivativeSigmoid(currNode.value);
                     cout<<"Partial E of W: "<<partialEofW<<endl;
                 }
                 else
                 {
                     // if current layer is hidden layer 
-                    float partialEofW = partialEofY * derivativeSigmoid(currNode.weight);
+                    float partialEofW = partialEofY * DerivativeSigmoid(currNode.weight);
                     // This covers the first part of the chain rule
 
                     int currentLayer = j;
@@ -166,24 +170,68 @@ void NeuralNetwork::BackPropagateImage(MNIST_Image img)
 
     }
 
-
-
-
-
-
-
-
 }
 
-float derivativeSigmoid(float x)
+void NeuralNetwork::AddLayer(Layer& layer)
 {
-    return sigmoid(x) * (1 - sigmoid(x));
+
+    if(layers.size() == 0)
+    {
+        // This is the first layer after the input layer
+        // Connect the input layer to this layer
+        for(int i=0; i<this->input.nodes.size();i++) {
+            for(int j=0;j<layer.nodes.size();j++){
+                this->input.nodes[i].weight.push_back(this->GetRandomWeight());
+            }
+        }
+    }
+    else {
+        Layer previousLayer = layers[layers.size()-1];
+
+        for (int i = 0; i < previousLayer.nodes.size(); i++)
+        {
+            for (int j = 0; j < layer.nodes.size(); j++)
+            {
+                previousLayer.nodes[i].weight.push_back(this->GetRandomWeight());
+            }
+        }
+        layers[layers.size()-1] = previousLayer;
+    }
+
+
+    layers.push_back(layer);
 }
 
-float sigmoid(float x)
+void NeuralNetwork::UpdateLastHidden()
+{
+    Layer previousLayer = layers[layers.size() - 1];
+
+    for (int i = 0; i < previousLayer.nodes.size(); i++)
+    {
+        for (int j = 0; j < this->output.nodes.size(); j++)
+        {
+            previousLayer.nodes[i].weight.push_back(this->GetRandomWeight());
+        }
+    }
+    layers[layers.size() - 1] = previousLayer;
+}
+
+float NeuralNetwork::GetRandomWeight()
+{
+    return -3 + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(5-(-3)));
+}
+
+
+float NeuralNetwork::Sigmoid(float x)
 {
     return 1/(1+exp(-x));
 }
+
+float NeuralNetwork::DerivativeSigmoid(float x)
+{
+    return Sigmoid(x) * (1 - Sigmoid(x));
+}
+
 
 
 

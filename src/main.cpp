@@ -43,7 +43,5 @@ int main()
 
     nn.ForwardPropagateImage(testImages[0]);
 
-
-
-    return 0;
+    return 0; 
 }
