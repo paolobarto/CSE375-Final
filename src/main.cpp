@@ -39,7 +39,7 @@ int main()
 
     // 5 hidden layers of 784 nodes, relu activation, fully connected
 
-    nn.CreateNetwork(784, 16, 10, 3);
+    nn.CreateNetwork(784, 16, 10, 2);
 
     nn.ForwardPropagateImage(testImages[0]);
 

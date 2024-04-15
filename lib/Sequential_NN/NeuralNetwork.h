@@ -38,7 +38,7 @@ void NeuralNetwork::CreateNetwork(int inputSize, int hiddenLayerSize, int output
     Layer inputLayer = Layer();
     for (int i = 0; i < inputSize; i++)
     {
-        Node n = Node(i, 0, 1);
+        Node n = Node(i, 0, -3 + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(5-(-3)))));
         inputLayer.addNode(n);
     }
     this->input = inputLayer;
@@ -116,25 +116,75 @@ void NeuralNetwork::BackPropagateImage(MNIST_Image img)
     //calculate error for node in hidden layer
     // partial derivative of error with respect to weight = 
     
-    for(int i=this->layers.size()-1; i>0; i--)
+
+    for(int i=0; i<output.nodes.size(); i++)
     {
-        for(int j=0; j < this->layers[i].nodes.size(); j++){
+        float partialEofY = this->output.nodes[i].value - (img.label == i ? 1 : 0);
+
+        // if current layer is desired, return input, else return output of previous layer
+        if(partialEofY==0)
+            continue;
+
+        for(int j=this->layers.size()-1; j>0; j--)
+        {
+            for(int k=0; k < this->layers[j].nodes.size(); k++){
 
 
-            // amount to change weight of node
-            Node currNode = this->layers[i].nodes[j];
+                // amount to change weight of node
+                Node currNode = this->layers[k].nodes[k];
 
-            // calculating partial derivative of error with respect to weight
-            float partialDerivative = 0;
-            
+                // calculating partial derivative of error with respect to weight
+                if(j==this->layers.size()-1)
+                {
+                    // if current layer is output layer
+                    float partialEofW = partialEofY * derivativeSigmoid(currNode.value);
+                    cout<<"Partial E of W: "<<partialEofW<<endl;
+                }
+                else
+                {
+                    // if current layer is hidden layer 
+                    float partialEofW = partialEofY * derivativeSigmoid(currNode.weight);
+                    // This covers the first part of the chain rule
+
+                    int currentLayer = j;
+                    // this is a layer before what we have covered
+                    while(currentLayer<(this->layers.size()-1))
+                    {
+
+                    }
 
 
 
+
+                    cout<<"Partial E of W: "<<partialEofW<<endl;
+                }
+                
+                // TODO apply change in weight
+                // TODO change representation of weights to display relationship
+            }
         }
+
     }
 
 
+
+
+
+
+
+
 }
+
+float derivativeSigmoid(float x)
+{
+    return sigmoid(x) * (1 - sigmoid(x));
+}
+
+float sigmoid(float x)
+{
+    return 1/(1+exp(-x));
+}
+
 
 
 NeuralNetwork::~NeuralNetwork()
