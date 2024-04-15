@@ -1,18 +1,19 @@
 #include <cstdint>
 #include <string>
 
-class image
+class MNIST_Image
 {
 private:
-    uint8_t label;
-    uint8_t pixels[784];
 
 public:
-    image(string line);
-    ~image();
+    uint8_t label;
+    uint16_t pixels[784];
+    uint16_t size = 784;
+    MNIST_Image(string line);
+    ~MNIST_Image();
 };
 
-image::image(string line)
+MNIST_Image::MNIST_Image(string line)
 {
     string delimiter = ",";
     size_t pos = 0;
@@ -35,6 +36,6 @@ image::image(string line)
     this->pixels[783] = stoi(line);
 }
 
-image::~image()
+MNIST_Image::~MNIST_Image()
 {
 }

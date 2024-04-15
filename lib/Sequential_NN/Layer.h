@@ -5,24 +5,20 @@ using namespace std;
 class Layer
 {
 private:
-    vector<Node> nodes;
+    // Since we can assume will be fully connected, we can just store the nodes of the previous layer
+    vector<Node> prevLayerNodes;
 public:
-    Layer();
-    Layer(vector<Node> nodes);
+    vector<Node> nodes;
+    Layer(vector<Node> previousNodes = vector<Node>());
     void addNode(Node node);
-    vector<Node> getNodes() { return nodes; }
     void appendLayer(Layer layer);
     ~Layer();
 };
 
-Layer::Layer()
+Layer::Layer(vector<Node> previousNodes)
 {
     nodes = vector<Node>();
-}
-
-Layer::Layer(vector<Node> nodes)
-{
-    this->nodes = nodes;
+    prevLayerNodes = previousNodes;
 }
 
 void Layer::addNode(Node node)

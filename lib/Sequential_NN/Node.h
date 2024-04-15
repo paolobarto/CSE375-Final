@@ -6,10 +6,11 @@ class Node
 private:
     int id;
     int layer;
-    float weight;
     vector<Node> nextNodes;
     vector<Node> prevNodes;
 public:
+    float weight;
+    float value = 0;
     Node();
     Node(int id, int layer, int weight);
     Node(int id, int layer, int weight, vector<Node> prevNodes);
@@ -47,7 +48,8 @@ Node::Node(int id, int layer, int weight, vector<Node> prevNodes)
 
 float Node::calculateOutput(float input, float (*activationFunction)(float))
 {
-    return activationFunction(input * weight);
+    this->value =  activationFunction(input * weight);
+    return this->value;
 }
 
 Node::~Node()
