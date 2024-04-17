@@ -218,7 +218,7 @@ void NeuralNetwork::UpdateLastHidden()
 
 float NeuralNetwork::GetRandomWeight()
 {
-    return -3 + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(5-(-3)));
+    return -3 + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(5-(-3))));
 }
 
 
