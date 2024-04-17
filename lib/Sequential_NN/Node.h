@@ -15,7 +15,10 @@ public:
     Node(int id, int layer);
     Node(int id, int layer, vector<float> weight);
     Node(int id, int layer, vector<float> weight, vector<Node> prevNodes);
-    float calculateOutput(float input, int nextNodeIndex, float (*activationFunction)(float));
+    float CalculateOutput(float input, int nextNodeIndex, float (*activationFunction)(float));
+    void IncrementValue(float input);
+    void ApplyRELU(float (*activationFunction)(float));
+    void ResetValue();
     ~Node();
 };
 
@@ -56,10 +59,25 @@ Node::Node(int id, int layer, vector<float> weight, vector<Node> prevNodes)
 }
 
 
-float Node::calculateOutput(float input, int nextNodeIndex, float (*activationFunction)(float))
+float Node::CalculateOutput(float input, int nextNodeIndex, float (*activationFunction)(float))
 {
     this->value =  activationFunction(input * weight[nextNodeIndex]);
-    return this->value;
+   return this->value;
+}
+
+void Node::IncrementValue(float input)
+{
+    this->value+=input;
+}
+
+void Node::ApplyRELU(float (*activationFunction)(float))
+{
+    this->value = activationFunction(this->value);
+}
+
+void Node::ResetValue() 
+{
+    this->value = 0;
 }
 
 Node::~Node()

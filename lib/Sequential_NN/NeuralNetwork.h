@@ -72,35 +72,47 @@ void NeuralNetwork::CreateNetwork(int inputSize, int hiddenLayerSize, int output
 
 void NeuralNetwork::ForwardPropagateImage(MNIST_Image img)
 {
-    float inputLayerTotal = 0;
-    for(int i=0;i<img.size;i++)
-    {
-        //inputLayerTotal += this->input.nodes[i].calculateOutput(img.pixels[i]/255, [](float x){return x;}); TODO
-    }
+    // layer 1 in hidden layer inputs come from input layer
 
-    // iterating through layers
-        float prevLayerTotal = 0;
-        float currLayerTotal = 0;
-    for(int i=0;i<this->layers.size();i++)
+    //Layers
+    for(int i=0;i<this->layers.size() + 1;i++)
     {
-        //need to calculate output for each layer
-        // Since will be full connected NN, I can store the sum of the entire previous layer
-        if(i==0)
-            prevLayerTotal = inputLayerTotal;
+        Layer pastLayer = Layer();
+        Layer currLayer = Layer();
         
-        for(int j=0; j<layers[i].nodes.size(); j++)
-        {
-            // j = node index
-            // currLayerTotal+= layers[i].nodes[j].calculateOutput(prevLayerTotal, [](float x){return x>0 ? x : 0;}); TODO
+        if(i==0){
+            pastLayer = this->input;
+            currLayer = this->layers[i];
         }
-        prevLayerTotal = currLayerTotal;
+        else if(i==this->layers.size()){
+            pastLayer =  this->layers[i-1];
+            currLayer = this->output;
+        }
+        else {
+            pastLayer = this->layers[i-1];
+            currLayer = this->layers[i];
+        }
+        
+
+            for(int j=0; j<pastLayer.nodes.size();j++)
+            {
+                for(int k=0; k<currLayer.nodes.size(); k++)
+                {
+                    currLayer.nodes[k].IncrementValue(pastLayer.nodes[j].value * pastLayer.nodes[j].weight[i]);
+                }
+            }
+
+        if(i!=this->layers.size())
+            for(int j=0; j<currLayer.nodes.size();j++)
+                currLayer.nodes[j].ApplyRELU([](float x){return x>0?x:0;});
+        else
+             for(int j=0; j<currLayer.nodes.size();j++)
+                currLayer.nodes[j].ApplyRELU([](float x){return 1/(1+exp(-x));});
     }
 
-    // Calculate output with sigmoid
-    for(int i=0;i<this->output.nodes.size();i++)
-    {
-        // this->output.nodes[i].calculateOutput(prevLayerTotal, [](float x){return 1/(1+exp(-x));}); TODO
-    }
+    
+
+
 }
 
 void NeuralNetwork::BackPropagateImage(MNIST_Image img)
@@ -218,7 +230,7 @@ void NeuralNetwork::UpdateLastHidden()
 
 float NeuralNetwork::GetRandomWeight()
 {
-    return -3 + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(5-(-3))));
+    return -1 + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(5-(-3))));
 }
 
 
