@@ -75,7 +75,7 @@ void NeuralNetwork::ForwardPropagateImage(MNIST_Image img)
     float inputLayerTotal = 0;
     for(int i=0;i<img.size;i++)
     {
-        inputLayerTotal += this->input.nodes[i].calculateOutput(img.pixels[i]/255, [](float x){return x;});
+        //inputLayerTotal += this->input.nodes[i].calculateOutput(img.pixels[i]/255, [](float x){return x;}); TODO
     }
 
     // iterating through layers
@@ -91,7 +91,7 @@ void NeuralNetwork::ForwardPropagateImage(MNIST_Image img)
         for(int j=0; j<layers[i].nodes.size(); j++)
         {
             // j = node index
-            currLayerTotal+= layers[i].nodes[j].calculateOutput(prevLayerTotal, [](float x){return x>0 ? x : 0;});
+            // currLayerTotal+= layers[i].nodes[j].calculateOutput(prevLayerTotal, [](float x){return x>0 ? x : 0;}); TODO
         }
         prevLayerTotal = currLayerTotal;
     }
@@ -99,7 +99,7 @@ void NeuralNetwork::ForwardPropagateImage(MNIST_Image img)
     // Calculate output with sigmoid
     for(int i=0;i<this->output.nodes.size();i++)
     {
-        this->output.nodes[i].calculateOutput(prevLayerTotal, [](float x){return 1/(1+exp(-x));});
+        // this->output.nodes[i].calculateOutput(prevLayerTotal, [](float x){return 1/(1+exp(-x));}); TODO
     }
 }
 
@@ -147,7 +147,7 @@ void NeuralNetwork::BackPropagateImage(MNIST_Image img)
                 else
                 {
                     // if current layer is hidden layer 
-                    float partialEofW = partialEofY * DerivativeSigmoid(currNode.weight);
+                    //float partialEofW = partialEofY * DerivativeSigmoid(currNode.weight);
                     // This covers the first part of the chain rule
 
                     int currentLayer = j;
@@ -160,7 +160,7 @@ void NeuralNetwork::BackPropagateImage(MNIST_Image img)
 
 
 
-                    cout<<"Partial E of W: "<<partialEofW<<endl;
+                    //cout<<"Partial E of W: "<<partialEofW<<endl;
                 }
                 
                 // TODO apply change in weight
