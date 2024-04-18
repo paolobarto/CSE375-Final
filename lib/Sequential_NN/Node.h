@@ -4,17 +4,19 @@ using namespace std;
 class Node
 {
 private:
+    vector<Node> nextNodes;
+public:
     int id;
     int layer;
-    vector<Node> nextNodes;
-    vector<Node> prevNodes;
-public:
+    vector<Node *> prevNodes;
     vector<float> weight;
     float value = 0;
+    float trainingTotal = 0;
+    float backPropIntermediateValue = 0;
     Node();
     Node(int id, int layer);
     Node(int id, int layer, vector<float> weight);
-    Node(int id, int layer, vector<float> weight, vector<Node> prevNodes);
+    Node(int id, int layer, vector<float> weight, vector<Node *> prevNodes);
     float CalculateOutput(float input, int nextNodeIndex, float (*activationFunction)(float));
     void IncrementValue(float input);
     void ApplyRELU(float (*activationFunction)(float));
@@ -27,7 +29,7 @@ Node::Node()
     id = 0;
     layer = 0;
     weight = vector<float>();
-    prevNodes = vector<Node>();
+    prevNodes = vector<Node *>();
     nextNodes = vector<Node>();
 }
 
@@ -36,7 +38,7 @@ Node::Node(int id, int layer)
     this->id = id;
     this->layer = layer;
     weight = vector<float>();
-    prevNodes = vector<Node>();
+    prevNodes = vector<Node *>();
     nextNodes = vector<Node>();
 }
 
@@ -45,11 +47,11 @@ Node::Node(int id, int layer, vector<float> weight)
     this->id = id;
     this->layer = layer;
     this->weight = weight;
-    prevNodes = vector<Node>();
+    prevNodes = vector<Node *>();
     nextNodes = vector<Node>();
 }
 
-Node::Node(int id, int layer, vector<float> weight, vector<Node> prevNodes)
+Node::Node(int id, int layer, vector<float> weight, vector<Node *> prevNodes)
 {
     this->id = id;
     this->layer = layer;
@@ -82,4 +84,9 @@ void Node::ResetValue()
 
 Node::~Node()
 {
+    // for (size_t i = 0; i < this->prevNodes.size(); i++)
+    // {
+    //     delete this->prevNodes[i];
+    // }
+    
 }

@@ -4,7 +4,7 @@
 #include <fstream>
 #include <iostream>
 using namespace std;
-int main()
+int main(int argc, char *argv[])
 {
     //read csv
     fstream testFile("../data/MNIST_CSV/mnist_test.csv", ios::in);
@@ -42,6 +42,8 @@ int main()
     nn.CreateNetwork(784, 16, 10, 2);
 
     nn.ForwardPropagateImage(testImages[0]);
+
+    nn.BackPropagateImage(testImages[0]);
 
     return 0; 
 }

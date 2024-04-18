@@ -4,22 +4,25 @@
 #include <iostream>
 
 using namespace std;
+float LEARNING_RATE = 0.01;
 
 class NeuralNetwork
 {
 private:
     Layer input;
     Layer output;
-    vector<Layer> layers;
+    vector<Layer *> layers;
 public:
     NeuralNetwork();
     void CreateNetwork(int inputSize,int hiddenLayerSize, int outputSize, int hiddenLayers);
-    void ForwardPropagateImage(MNIST_Image img);
+    int ForwardPropagateImage(MNIST_Image img);
     void BackPropagateImage(MNIST_Image img);
+    void BackPropagateRecursive(Node *target, int error, float runningInflunce);
     void AddLayer(Layer& layer);
     void UpdateLastHidden();
     float Sigmoid(float x);
     float DerivativeSigmoid(float x);
+    float DerivativeRELU(float x);
     float GetRandomWeight();
     ~NeuralNetwork();
 };
@@ -28,7 +31,7 @@ NeuralNetwork::NeuralNetwork()
 {
     input = Layer();
     output = Layer();
-    layers = vector<Layer>();
+    layers = vector<Layer *>();
 }
 
 
@@ -47,22 +50,23 @@ void NeuralNetwork::CreateNetwork(int inputSize, int hiddenLayerSize, int output
     // Create hidden layers
     for (int i = 0; i < hiddenLayers; i++)
     {
-        Layer previousLayer = i==0 ? this->input : layers[i-1];
+        Layer *previousLayer = i==0 ? &this->input : layers[i-1];
 
-        Layer hiddenLayer = Layer(previousLayer.nodes);
+        Layer *hiddenLayer = new Layer((*previousLayer).nodes);
         for (int j = 0; j < hiddenLayerSize; j++)
         {
             Node n = Node(j, i + 1);
-            hiddenLayer.addNode(n);
+            hiddenLayer->addNode(n);
+            
         }
-        this->AddLayer(hiddenLayer);
+        this->AddLayer(*hiddenLayer);
     }
 
     // Create output layer
     Layer outputLayer = Layer();
     for (int i = 0; i < outputSize; i++)
     {
-        Node n = Node(i, layers.size());
+        Node n = Node(i, layers.size()+1);
         outputLayer.addNode(n);
     }
     this->output = outputLayer;
@@ -70,9 +74,13 @@ void NeuralNetwork::CreateNetwork(int inputSize, int hiddenLayerSize, int output
 }
 
 
-void NeuralNetwork::ForwardPropagateImage(MNIST_Image img)
+int NeuralNetwork::ForwardPropagateImage(MNIST_Image img)
 {
     // layer 1 in hidden layer inputs come from input layer
+    for(int i=0; i<img.size;i++)
+    {
+        this->input.nodes[i].value = img.pixels[i];
+    }
 
     //Layers
     for(int i=0;i<this->layers.size() + 1;i++)
@@ -82,25 +90,22 @@ void NeuralNetwork::ForwardPropagateImage(MNIST_Image img)
         
         if(i==0){
             pastLayer = this->input;
-            currLayer = this->layers[i];
+            currLayer = *this->layers[i];
         }
         else if(i==this->layers.size()){
-            pastLayer =  this->layers[i-1];
+            pastLayer =  *this->layers[i-1];
             currLayer = this->output;
         }
         else {
-            pastLayer = this->layers[i-1];
-            currLayer = this->layers[i];
+            pastLayer = *this->layers[i-1];
+            currLayer = *this->layers[i];
         }
         
 
-            for(int j=0; j<pastLayer.nodes.size();j++)
-            {
-                for(int k=0; k<currLayer.nodes.size(); k++)
-                {
-                    currLayer.nodes[k].IncrementValue(pastLayer.nodes[j].value * pastLayer.nodes[j].weight[i]);
-                }
-            }
+        for(int j=0; j<pastLayer.nodes.size();j++)
+            for(int k=0; k<currLayer.nodes.size(); k++)
+                currLayer.nodes[k].IncrementValue(pastLayer.nodes[j].value * pastLayer.nodes[j].weight[i]);
+            
 
         if(i!=this->layers.size())
             for(int j=0; j<currLayer.nodes.size();j++)
@@ -110,78 +115,71 @@ void NeuralNetwork::ForwardPropagateImage(MNIST_Image img)
                 currLayer.nodes[j].ApplyRELU([](float x){return 1/(1+exp(-x));});
     }
 
-    
-
+    return img.label;
 
 }
 
 void NeuralNetwork::BackPropagateImage(MNIST_Image img)
 {
-    // Calculate error from output
-    // formula = .5 * (target - output)^2
-    float error = 0;
-    for(int i=0;i<this->output.nodes.size();i++)
-    {
-        error += .5 * pow((img.label == i ? 1 : 0) - this->output.nodes[i].value, 2);
-    }
-    cout<<"Total Error: "<<error<<endl;
-
-    //calculate error for node in hidden layer
-    // partial derivative of error with respect to weight = 
-
-
-
     
+    // Error impact
+    int vsTarget[10];
 
-    for(int i=0; i<output.nodes.size(); i++)
+    for(int i=0; i<10; i++)
     {
-        float partialEofY = this->output.nodes[i].value - (img.label == i ? 1 : 0);
-
-        // if current layer is desired, return input, else return output of previous layer
-        if(partialEofY==0)
-            continue;
-
-        for(int j=this->layers.size()-1; j>0; j--)
+        if(i == img.label)
         {
-            for(int k=0; k < this->layers[j].nodes.size(); k++){
+            if(this->output.nodes[i].value == 1)
+                vsTarget[i]==0;
+            else  
+                vsTarget[i]=-1;
+        }
+        else
+        {
+            if(this->output.nodes[i].value == 0)
+                vsTarget[i] = 0;
+            else
+                vsTarget[i] = 1;
+        }
+    }
 
+    for(int i=0; i<this->output.nodes.size(); i++)
+    {
+        if(vsTarget[i] != 0)
+            this->BackPropagateRecursive(&this->output.nodes[i], vsTarget[i], 1);
+    }
+}
 
-                // amount to change weight of node
-                Node currNode = this->layers[k].nodes[k];
-
-                // calculating partial derivative of error with respect to weight
-                if(j==this->layers.size()-1)
-                {
-                    // if current layer is output layer
-                    float partialEofW = partialEofY * DerivativeSigmoid(currNode.value);
-                    cout<<"Partial E of W: "<<partialEofW<<endl;
-                }
-                else
-                {
-                    // if current layer is hidden layer 
-                    //float partialEofW = partialEofY * DerivativeSigmoid(currNode.weight);
-                    // This covers the first part of the chain rule
-
-                    int currentLayer = j;
-                    // this is a layer before what we have covered
-                    while(currentLayer<(this->layers.size()-1))
-                    {
-
-                    }
-
-
-
-
-                    //cout<<"Partial E of W: "<<partialEofW<<endl;
-                }
-                
-                // TODO apply change in weight
-                // TODO change representation of weights to display relationship
-            }
+void NeuralNetwork::BackPropagateRecursive(Node *target, int error, float runningInfluence)
+{
+    for(int i=0; i<target->prevNodes.size(); i++)
+    {
+        // Calculate the partial derivative of the error with respect to the weight
+        float partialDeriv = error;
+        float influence = runningInfluence;
+        //Given a node, calculate contributing influence then repeat for previous nodes
+        if(target->layer == this->layers.size()+1)
+        {
+            // This is the output layer
+            // Calculate the derivative of the sigmoid
+            partialDeriv *= this->DerivativeSigmoid(target->prevNodes[i]->value);
+            // This is used in all subsequent calculations
+            influence = this->DerivativeSigmoid(target->prevNodes[i]->weight[target->id]);
+        }
+        else
+        {
+            // This is a hidden layer
+            // Calculate the derivative of the RELU
+            partialDeriv *= this->DerivativeRELU(target->prevNodes[i]->value);
+            // This is used in all subsequent calculations
+            influence *= this->DerivativeRELU(target->prevNodes[i]->weight[target->id]);
         }
 
+        // Update the weight
+        target->prevNodes[i]->weight[target->id] -= LEARNING_RATE * partialDeriv * influence;
+        // Recurse
+        this->BackPropagateRecursive(target->prevNodes[i], partialDeriv, influence);
     }
-
 }
 
 void NeuralNetwork::AddLayer(Layer& layer)
@@ -194,38 +192,43 @@ void NeuralNetwork::AddLayer(Layer& layer)
         for(int i=0; i<this->input.nodes.size();i++) {
             for(int j=0;j<layer.nodes.size();j++){
                 this->input.nodes[i].weight.push_back(this->GetRandomWeight());
+                //this->input.nodes[i].prevNodes.push_back(layer.nodes[j]);
+                layer.nodes[j].prevNodes.push_back(&this->input.nodes[i]);
             }
         }
     }
     else {
-        Layer previousLayer = layers[layers.size()-1];
+        Layer *previousLayer = layers[layers.size()-1];
 
-        for (int i = 0; i < previousLayer.nodes.size(); i++)
+        for (int i = 0; i < previousLayer->nodes.size(); i++)
         {
             for (int j = 0; j < layer.nodes.size(); j++)
             {
-                previousLayer.nodes[i].weight.push_back(this->GetRandomWeight());
+                previousLayer->nodes[i].weight.push_back(this->GetRandomWeight());
+                //this->input.nodes[i].prevNodes.push_back(layer.nodes[j]);
+                layer.nodes[j].prevNodes.push_back(&previousLayer->nodes[i]);
             }
         }
-        layers[layers.size()-1] = previousLayer;
+        //layers[layers.size()-1] = &previousLayer;
     }
 
 
-    layers.push_back(layer);
+    layers.push_back(&layer);
 }
 
 void NeuralNetwork::UpdateLastHidden()
 {
-    Layer previousLayer = layers[layers.size() - 1];
+    Layer *previousLayer = this->layers[layers.size() - 1];
 
-    for (int i = 0; i < previousLayer.nodes.size(); i++)
+    for (int i = 0; i < previousLayer->nodes.size(); i++)
     {
         for (int j = 0; j < this->output.nodes.size(); j++)
         {
-            previousLayer.nodes[i].weight.push_back(this->GetRandomWeight());
+            previousLayer->nodes[i].weight.push_back(this->GetRandomWeight());
+            this->output.nodes[j].prevNodes.push_back(&previousLayer->nodes[i]);
         }
     }
-    layers[layers.size() - 1] = previousLayer;
+    //layers[layers.size() - 1] = previousLayer;
 }
 
 float NeuralNetwork::GetRandomWeight()
@@ -244,6 +247,10 @@ float NeuralNetwork::DerivativeSigmoid(float x)
     return Sigmoid(x) * (1 - Sigmoid(x));
 }
 
+float NeuralNetwork::DerivativeRELU(float x)
+{
+    return x>0?1:0;
+}
 
 
 
