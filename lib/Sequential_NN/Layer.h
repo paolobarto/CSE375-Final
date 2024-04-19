@@ -1,6 +1,8 @@
-#include <vector>
+#pragma once
+#ifndef Layer_H
+#define Layer_H
+
 #include "Node.h"
-using namespace std;
 
 class Layer
 {
@@ -15,17 +17,4 @@ public:
     ~Layer();
 };
 
-Layer::Layer(vector<Node> previousNodes)
-{
-    nodes = vector<Node>();
-    prevLayerNodes = previousNodes;
-}
-
-void Layer::addNode(Node node)
-{
-    nodes.push_back(node);
-}
-
-Layer::~Layer()
-{
-}
+#endif
