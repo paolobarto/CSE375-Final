@@ -2,6 +2,7 @@
 
 
 #include <fstream>
+#include <chrono>
 
 
 int main(int argc, char *argv[])
@@ -39,28 +40,39 @@ int main(int argc, char *argv[])
 
     // 5 hidden layers of 784 nodes, relu activation, fully connected
 
-    nn.CreateNetwork(784, 16, 10, 2);
+    int epochs = 1;
+    while(epochs<10){
 
-    for(int i=0;i<trainImages.size();i++)
-    {
-        nn.ForwardPropagateImage(trainImages[i]);
-        nn.BackPropagateImage(trainImages[i]);
+        nn.CreateNetwork(784, 16, 10, 2);
+        
+        for(int i=(epochs - 1)*(trainImages.size()/10);i<epochs*(trainImages.size()/10);i++)
+        {
+            //auto started = std::chrono::high_resolution_clock::now();
+
+            nn.ForwardPropagateImage(trainImages[i]);
+            nn.BackPropagateImage(trainImages[i]);
+
+            //time_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - started).count();
+            //cout<<"Time for i:"<<i<<" "<<elapsed<<endl; 
+        }
+
+        int correctGuesses = 0;
+        int falseGuesses = 0;
+
+        for(int i=0; i<testImages.size(); i++)
+        {
+            int guess = nn.ForwardPropagateImage(testImages[i]);
+            if(guess == testImages[i].label)
+                correctGuesses++;
+            else
+                falseGuesses++;
+        }
+
+        cout<<"Epoch: "<<epochs<<endl;
+        cout<<"Correct Guesses: "<<correctGuesses<<endl;
+        cout<<"False Guesses: "<<falseGuesses<<endl;
+        epochs++;
     }
-
-    int correctGuesses = 0;
-    int falseGuesses = 0;
-
-    for(int i=0; i<testImages.size(); i++)
-    {
-        int guess = nn.ForwardPropagateImage(testImages[i]);
-        if(guess == testImages[i].label)
-            correctGuesses++;
-        else
-            falseGuesses++;
-    }
-
-    cout<<"Correct Guesses: "<<correctGuesses<<endl;
-    cout<<"False Guesses: "<<falseGuesses<<endl;
 
 
     return 0; 

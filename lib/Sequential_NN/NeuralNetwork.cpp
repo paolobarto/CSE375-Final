@@ -59,34 +59,34 @@ int NeuralNetwork::ForwardPropagateImage(MNIST_Image img)
     //Layers
     for(int i=0;i<this->layers.size() + 1;i++)
     {
-        Layer pastLayer = Layer();
-        Layer currLayer = Layer();
+        Layer *pastLayer = new Layer();
+        Layer *currLayer = new Layer();
         
         if(i==0){
-            pastLayer = this->input;
-            currLayer = *this->layers[i];
+            pastLayer = &this->input;
+            currLayer = this->layers[i];
         }
         else if(i==this->layers.size()){
-            pastLayer =  *this->layers[i-1];
-            currLayer = this->output;
+            pastLayer =  this->layers[i-1];
+            currLayer = &this->output;
         }
         else {
-            pastLayer = *this->layers[i-1];
-            currLayer = *this->layers[i];
+            pastLayer = this->layers[i-1];
+            currLayer = this->layers[i];
         }
         
 
-        for(int j=0; j<pastLayer.nodes.size();j++)
-            for(int k=0; k<currLayer.nodes.size(); k++)
-                currLayer.nodes[k].IncrementValue(pastLayer.nodes[j].value * pastLayer.nodes[j].weight[i]);
+        for(int j=0; j<pastLayer->nodes.size();j++)
+            for(int k=0; k<currLayer->nodes.size(); k++)
+                currLayer->nodes[k].IncrementValue(pastLayer->nodes[j].value * pastLayer->nodes[j].weight[i]);
             
 
         if(i!=this->layers.size())
-            for(int j=0; j<currLayer.nodes.size();j++)
-                currLayer.nodes[j].ApplyRELU([](float x){return x>0?x:0;});
+            for(int j=0; j<currLayer->nodes.size();j++)
+                currLayer->nodes[j].ApplyRELU([](float x){return x>0?x:0;});
         else
-             for(int j=0; j<currLayer.nodes.size();j++)
-                currLayer.nodes[j].ApplyRELU([](float x){return 1/(1+exp(-x));});
+             for(int j=0; j<currLayer->nodes.size();j++)
+                currLayer->nodes[j].ApplyRELU([](float x){return 1/(1+exp(-x));});
     }
 
     for(int i=0;i<10;i++)
@@ -157,6 +157,9 @@ void NeuralNetwork::BackPropagateRecursive(Node *target, int error, float runnin
             // This is used in all subsequent calculations
             influence *= this->DerivativeRELU(target->prevNodes[i]->weight[target->id]);
         }
+
+        if(influence==0 || partialDeriv ==0) // This is literally all I needed for my code to work
+            return;
 
         // Update the weight
         target->prevNodes[i]->weight[target->id] -= this->LEARNING_RATE * partialDeriv * influence;
