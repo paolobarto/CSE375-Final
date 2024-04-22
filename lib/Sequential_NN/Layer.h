@@ -12,6 +12,7 @@ private:
 public:
     vector<Node> nodes;
     Layer(vector<Node> previousNodes = vector<Node>());
+    void ResetNodes();
     void addNode(Node node);
     void appendLayer(Layer layer);
     ~Layer();

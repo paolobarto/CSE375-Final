@@ -50,6 +50,13 @@ void Node::IncrementValue(float input)
 
 void Node::ApplyRELU(float (*activationFunction)(float))
 {
+    this->priorActivationValue = this->value;
+    this->value = activationFunction(this->value);
+}
+
+void Node::ApplySigmoid(int (*activationFunction)(float))
+{
+    this->priorActivationValue = this->value;
     this->value = activationFunction(this->value);
 }
 

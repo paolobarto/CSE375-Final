@@ -11,7 +11,7 @@ class MNIST_Image
 {
 public:
     int label;
-    uint16_t pixels[784];
+    float pixels[784];
     uint16_t size = 784;
     MNIST_Image(string line);
     ~MNIST_Image();

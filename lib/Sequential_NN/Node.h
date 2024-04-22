@@ -17,6 +17,7 @@ public:
     float value = 0;
     float trainingTotal = 0;
     float backPropIntermediateValue = 0;
+    float priorActivationValue = 0;
     Node();
     Node(int id, int layer);
     Node(int id, int layer, vector<float> weight);
@@ -24,6 +25,7 @@ public:
     float CalculateOutput(float input, int nextNodeIndex, float (*activationFunction)(float));
     void IncrementValue(float input);
     void ApplyRELU(float (*activationFunction)(float));
+    void ApplySigmoid(int (*activationFunction)(float));
     void ResetValue();
     ~Node();
 };
