@@ -13,7 +13,7 @@
 class NeuralNetwork
 {
 private:
-    float LEARNING_RATE = 0.01;
+    float LEARNING_RATE = 0.1;
     Layer input;
     Layer output;
     vector<Layer *> layers;
@@ -24,6 +24,7 @@ public:
     int ForwardPropagateImage(MNIST_Image img);
     float BackPropagateImage(MNIST_Image img);
     float BackPropagateRecursive(Node *target, int error, float runningInflunce, float runningChangeTotal);
+    void BackPropagateRecursiveArchive(Node *target, int error, float runningInflunce);
     void ResetValues();
     void AddLayer(Layer& layer);
     void UpdateLastHidden();

@@ -42,8 +42,8 @@ int main(int argc, char *argv[])
 
     int epochs = 1;
     //int epochIndex = 1;
-    nn.CreateNetwork(784, 128, 10, 2);
-    while(epochs<1000){
+    nn.CreateNetwork(784, 16, 10, 4);
+    while(epochs<2){
 
         int trainCorrectGuesses = 0;
         int trainIncorrectGuesses = 0;
@@ -63,7 +63,12 @@ int main(int argc, char *argv[])
                 trainIncorrectGuesses++;
                 changeTotal += nn.BackPropagateImage(trainImages[i]);
             }
+
+            
+            if(i%100==0)
+                nn.PrintLayerAverage();
             nn.ResetValues();
+
         }
             time_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - started).count();
             cout<<"Epoch: "<<epochs<<endl;
