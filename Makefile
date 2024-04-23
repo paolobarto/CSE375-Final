@@ -14,11 +14,11 @@ BITS = 64
 
 # Output directory
 ODIR  = obj32
-tmp  := $(shell mkdir -p $(ODIR))
+tmp  := $(shell mkdir -p $(ODIR)/src)
 
 # Basic compiler configuration and flags
 CXX      = g++
-CXXFLAGS = -MMD -ggdb -O3 -std=gnu++2a -m$(BITS) -MMD
+CXXFLAGS = -MMD -ggdb -O3 -std=gnu++2a -m$(BITS)
 LDFLAGS	 = -m$(BITS) -lpthread 
 # The basenames of the c++ files that this program uses
 CXXFILES =  src/MNIST_Image src/Node  src/Layer src/NeuralNetwork src/main
