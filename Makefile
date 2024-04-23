@@ -18,7 +18,7 @@ tmp  := $(shell mkdir -p $(ODIR))
 
 # Basic compiler configuration and flags
 CXX      = g++
-CXXFLAGS = -MMD -ggdb -O3 -std=gnu++2a -m$(BITS) -mmd
+CXXFLAGS = -MMD -ggdb -O3 -std=gnu++2a -m$(BITS) -MMD
 LDFLAGS	 = -m$(BITS) -lpthread 
 # The basenames of the c++ files that this program uses
 CXXFILES =  src/MNIST_Image src/Node  src/Layer src/NeuralNetwork src/main
