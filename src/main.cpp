@@ -1,4 +1,4 @@
-#include "../lib/Sequential_NN/NeuralNetwork.h"
+#include "NeuralNetwork.h"
 
 
 #include <fstream>

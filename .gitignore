@@ -1,3 +1,4 @@
 .vscode
 data/MNIST_CSV/mnist_test.csv
 data/MNIST_CSV/mnist_train.csv
+obj32/*

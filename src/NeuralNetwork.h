@@ -3,7 +3,7 @@
 #define NeuralNetwork_H
 
 #include "Layer.h"
-#include "../MNIST/MNIST_Image.h"
+#include "MNIST_Image.h"
 #include <math.h>
 #include <iostream>
 #include <random>
