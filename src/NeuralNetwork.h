@@ -25,6 +25,7 @@ public:
     float BackPropagateImage(MNIST_Image img);
     float BackPropagateRecursive(Node *target, int error, float runningInflunce, float runningChangeTotal);
     void BackPropagateRecursiveArchive(Node *target, int error, float runningInflunce);
+    void BackPropagateLogging(Node *target, int error, float runningInflunce);
     void ResetValues();
     void AddLayer(Layer& layer);
     void UpdateLastHidden();
