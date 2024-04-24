@@ -15,7 +15,7 @@ MNIST_Image::MNIST_Image(string line)
         }
         else
         {
-            this->pixels[i - 1] = stoi(token)/255.0;
+            this->pixels[i - 1] = (stoi(token)/255.0)*.99 + 0.01;
         }
         line.erase(0, pos + delimiter.length());
         i++;

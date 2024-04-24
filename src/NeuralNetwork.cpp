@@ -143,17 +143,23 @@ int NeuralNetwork::ForwardPropagateImage(MNIST_Image img)
 
 
         for(int j=0; j<pastLayer->nodes.size();j++)
-            for(int k=0; k<currLayer->nodes.size(); k++)
+            for(int k=0; k<currLayer->nodes.size(); k++){
                 currLayer->nodes[k].IncrementValue(pastLayer->nodes[j].value * pastLayer->nodes[j].weight[k]);
+                //cout<<pastLayer->nodes[j].value<<"*"<<pastLayer->nodes[j].weight[k]<<" = "<<currLayer->nodes[k].value<<endl;
+            }
 
 
         if(i!=this->layers.size())
-            for(int j=0; j<currLayer->nodes.size();j++)
-                //currLayer->nodes[j].ApplyRELU([](float x){return x>0?x:0;});
-                currLayer->nodes[j].ApplyRELU([](float x){return x>0?x:(float)(0.01*x);}); // leakyRelu
+            for(int j=0; j<currLayer->nodes.size();j++){
+                currLayer->nodes[j].ApplyRELU([](float x){return x>0?x:0;});
+                //currLayer->nodes[j].ApplyRELU([](float x){return x>0?x:(float)(0.1*x);}); // leakyRelu
+                //cout<<"RELU Before: "<<currLayer->nodes[j].priorActivationValue<<" After: "<<currLayer->nodes[j].value<<endl;
+            }
         else
-             for(int j=0; j<currLayer->nodes.size();j++)
-                currLayer->nodes[j].ApplySigmoid([](float x){return (1/(1+exp(-x)))>.5 ? 1 : 0;});
+             for(int j=0; j<currLayer->nodes.size();j++){
+                currLayer->nodes[j].ApplySigmoid([](float x){return (1/(1+exp(-x)));});
+                //cout<<"Sigmoid Before: "<<currLayer->nodes[j].priorActivationValue<<" After: "<<currLayer->nodes[j].value<<endl;
+             }
     }
 
     for(int i=0;i<10;i++)
@@ -163,7 +169,8 @@ int NeuralNetwork::ForwardPropagateImage(MNIST_Image img)
         else if(this->output.nodes[i].value == 0 && i==img.label)
             return -1;
     }
-
+    
+    //argmax
 
     return img.label;
 
@@ -174,47 +181,55 @@ float NeuralNetwork::BackPropagateImage(MNIST_Image img)
 
     // Error impact
     int vsTarget[10];
-
+    float delta = .0000001;
     for(int i=0; i<10; i++)
     {
-        if(i == img.label)
-        {
-            if(this->output.nodes[i].value == 1)
-                vsTarget[i] = 0;
-            else
-                vsTarget[i] = -1;
-        }
-        else
-        {
-            if(this->output.nodes[i].value == 0)
-                vsTarget[i] = 0;
-            else
-                vsTarget[i] = 1;
-        }
+        float y = i==img.label?1:0;
+        float y_hat = this->output.nodes[i].value;
+        vsTarget[i] = -(y * log(y_hat + delta) + (1 - y) * log((1 - y_hat)+delta));
     }
 
+    // for (int i = 0; i < 10; i++)
+    // {
+    //     if (i == img.label)
+    //     {
+    //         if (this->output.nodes[i].value == 1)
+    //             vsTarget[i] = 0;
+    //         else
+    //             vsTarget[i] = -1;
+    //     }
+    //     else
+    //     {
+    //         if (this->output.nodes[i].value == 0)
+    //             vsTarget[i] = 0;
+    //         else
+    //             vsTarget[i] = 1;
+    //     }
+    // }
+
     float runningChangeTotal = 0;
-    vector<vector<vector<float>>> debugPrevLayerWeights;
-    for(int i=0; i<this->layers.size(); i++)
-    {
-        vector<vector<float>> layer;
-        for(int j=0; j<this->layers[i]->nodes.size(); j++)
-        {   
-            vector<float> node;
-            for(int k=0; k<this->layers[i]->nodes[j].weight.size(); k++)
-            {
-                node.push_back(this->layers[i]->nodes[j].weight[k]);
-            }
-            layer.push_back(node);
-        }
-        debugPrevLayerWeights.push_back(layer);
-    }
+    // vector<vector<vector<float>>> debugPrevLayerWeights;
+    // for(int i=0; i<this->layers.size(); i++)
+    // {
+    //     vector<vector<float>> layer;
+    //     for(int j=0; j<this->layers[i]->nodes.size(); j++)
+    //     {   
+    //         vector<float> node;
+    //         for(int k=0; k<this->layers[i]->nodes[j].weight.size(); k++)
+    //         {
+    //             node.push_back(this->layers[i]->nodes[j].weight[k]);
+    //         }
+    //         layer.push_back(node);
+    //     }
+    //     debugPrevLayerWeights.push_back(layer);
+    // }
 
     for (int i = 0; i < this->output.nodes.size(); i++)
     {
         if(vsTarget[i] != 0){
-            runningChangeTotal += this->BackPropagateRecursive(&this->output.nodes[i], vsTarget[i], 1, 0);;
+            //runningChangeTotal += this->BackPropagateRecursive(&this->output.nodes[i], vsTarget[i], 1, 0);;
             //this->BackPropagateRecursiveArchive(&this->output.nodes[i], vsTarget[i], 1);
+            runningChangeTotal += this->BackPropagateLogging(&this->output.nodes[i], vsTarget[i], 1);
         }
     }
     ////cout<<"Backprop changeTotal: "<<runningChangeTotal<<endl;
@@ -223,77 +238,79 @@ float NeuralNetwork::BackPropagateImage(MNIST_Image img)
     // else
     //     this->previousTrainValue=runningChangeTotal;
 
-    for(int i=0; i<this->layers.size(); i++)
-    {
-        for(int j=0; j<this->layers[i]->nodes.size(); j++)
-        {
-            for(int k=0; k<this->layers[i]->nodes[j].weight.size(); k++)
-            {
-                if(debugPrevLayerWeights[i][j][k] != this->layers[i]->nodes[j].weight[k])
-                {
-                    return runningChangeTotal;
-                }
-            }
-        }
-    }
+    // for(int i=0; i<this->layers.size(); i++)
+    // {
+    //     for(int j=0; j<this->layers[i]->nodes.size(); j++)
+    //     {
+    //         for(int k=0; k<this->layers[i]->nodes[j].weight.size(); k++)
+    //         {
+    //             if(debugPrevLayerWeights[i][j][k] != this->layers[i]->nodes[j].weight[k])
+    //             {
+    //                 return runningChangeTotal;
+    //             }
+    //         }
+    //     }
+    // }
 
 
-    cout<<"REDUNDANT TRAINING"<<endl;
-    this->PrintLayerAverage();
-    for (int i = 0; i < this->output.nodes.size(); i++)
-    {
-        if (vsTarget[i] != 0)
-        {
-            this->BackPropagateLogging(&this->output.nodes[i], vsTarget[i], 1);
+    // cout<<"REDUNDANT TRAINING"<<endl;
+    // this->PrintLayerAverage();
+    // for (int i = 0; i < this->output.nodes.size(); i++)
+    // {
+    //     if (vsTarget[i] != 0)
+    //     {
+    //         this->BackPropagateLogging(&this->output.nodes[i], vsTarget[i], 1);
             
-            // this->BackPropagateRecursiveArchive(&this->output.nodes[i], vsTarget[i], 1);
-        }
-    }
+    //         // this->BackPropagateRecursiveArchive(&this->output.nodes[i], vsTarget[i], 1);
+    //     }
+    // }
 
     return runningChangeTotal;
 }
 
 
-void NeuralNetwork::BackPropagateLogging(Node *target, int error, float runningInfluence)
+float NeuralNetwork::BackPropagateLogging(Node *target, int error, float runningInfluence)
 {
+
+    // Base case: if the target node has no previous nodes, return the error
+    if (target->prevNodes.empty())
+    {
+        return error;
+    }
+
+    // Calculate the derivative of the activation function at the target node's value
+    float derivative;
+    if (target->layer != this->layers.size() + 1)
+    {
+        // Hidden layer: ReLU activation
+        derivative = DerivativeRELU(target->value);
+    }
+    else
+    {
+        // Last hidden layer: Sigmoid activation
+        derivative = DerivativeSigmoid(target->value);
+    }
+
+    // Calculate the change in the target node's value
+    float delta = error * derivative;
+
+    // Update weights and propagate error to previous layer nodes
     for (int i = 0; i < target->prevNodes.size(); i++)
     {
-        // Calculate the partial derivative of the error with respect to the weight
-        float partialDeriv = error;
-        float influence = runningInfluence;
-        // Given a node, calculate contributing influence then repeat for previous nodes
-        if (target->layer == this->layers.size() + 1)
-        {
-            // This is the output layer
-            // Calculate the derivative of the sigmoid
-            partialDeriv *= this->DerivativeSigmoid(target->prevNodes[i]->value);
-            // This is used in all subsequent calculations
-            influence = this->DerivativeSigmoid(target->prevNodes[i]->weight[target->id]);
-        }
-        else
-        {
-
-            // This is a hidden layer
-            // Calculate the derivative of the RELU
-            partialDeriv *= this->DerivativeRELU(target->prevNodes[i]->value);
-            // This is used in all subsequent calculations
-            influence *= this->DerivativeRELU(target->prevNodes[i]->weight[target->id]);
-        }
-        target->prevNodes[i]->weight[target->id] -= this->LEARNING_RATE * partialDeriv * runningInfluence;
-
-        if (influence == 0)
-        {
-            cout<<"Target Node: "<<target->id<<" Layer: "<<target->layer<<" influence: "<<influence<<" Partial Deriv: "<<partialDeriv<<endl;
-            continue;
-        } // This is literally all I needed for my code to work
-        if(target->prevNodes[i]->layer==0)
-            continue;
+        // Calculate the change in weight
+        float weightChange = delta * target->prevNodes[i]->value * LEARNING_RATE;
 
         // Update the weight
+        target->prevNodes[i]->weight[target->id] += weightChange;
 
-        // Recurse
-        this->BackPropagateLogging(target->prevNodes[i], error, influence);
+        // Recursively propagate the error to the previous node
+        runningInfluence = runningInfluence * target->prevNodes[i]->weight[target->id];
+        float prevError = delta * target->prevNodes[i]->weight[target->id] * runningInfluence;
+        BackPropagateLogging(target->prevNodes[i], prevError, runningInfluence);
     }
+
+    // Return the error propagated to the previous layer
+    return delta * runningInfluence;
 }
 
 float NeuralNetwork::BackPropagateRecursive(Node *target, int error, float runningInfluence, float runningChangeTotal)
@@ -327,8 +344,8 @@ float NeuralNetwork::BackPropagateRecursive(Node *target, int error, float runni
         {
             // This is a hidden layer
             // Calculate the derivative of the RELU
-            //partialDeriv *= this->DerivativeRELU(target->prevNodes[i]->value);
-            partialDeriv *= this->DerivativeSigmoid(target->prevNodes[i]->value);
+            partialDeriv *= this->DerivativeRELU(target->prevNodes[i]->value);
+            //partialDeriv *= this->DerivativeSigmoid(target->prevNodes[i]->value);
             // This is used in all subsequent calculations
 
             changeTotal = this->LEARNING_RATE * partialDeriv * runningInfluence;
@@ -343,8 +360,8 @@ float NeuralNetwork::BackPropagateRecursive(Node *target, int error, float runni
             //     cout<<"here"<<endl;
 
 
-            //influence *= this->DerivativeRELU(target->prevNodes[i]->weight[target->id]);
-            influence = this->DerivativeSigmoid(target->prevNodes[i]->weight[target->id]);
+            influence *= this->DerivativeRELU(target->prevNodes[i]->weight[target->id]);
+            //influence = this->DerivativeSigmoid(target->prevNodes[i]->weight[target->id]);
         }
         if(influence==0) // partialDerive may be zero
             //return runningChangeTotal + changeTotal;
@@ -475,7 +492,7 @@ void NeuralNetwork::UpdateLastHidden()
 float NeuralNetwork::GetRandomWeight()
 {
     // min = 0, max = 1
-    return 0 + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(1-(0))));
+    return 1 + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(1-(-1))));
 }
 
 
@@ -554,7 +571,7 @@ float NeuralNetwork::DerivativeSigmoid(float x)
 float NeuralNetwork::DerivativeRELU(float x)
 {
     return x>0?1:0;
-    //return x>0?1:(float)(0.01);
+    //return x>0?1:(float)(0.1);
 }
 
 

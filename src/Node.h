@@ -25,7 +25,7 @@ public:
     float CalculateOutput(float input, int nextNodeIndex, float (*activationFunction)(float));
     void IncrementValue(float input);
     void ApplyRELU(float (*activationFunction)(float));
-    void ApplySigmoid(int (*activationFunction)(float));
+    void ApplySigmoid(float (*activationFunction)(float));
     void ResetValue();
     ~Node();
 };

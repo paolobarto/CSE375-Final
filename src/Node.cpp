@@ -54,7 +54,7 @@ void Node::ApplyRELU(float (*activationFunction)(float))
     this->value = activationFunction(this->value);
 }
 
-void Node::ApplySigmoid(int (*activationFunction)(float))
+void Node::ApplySigmoid(float (*activationFunction)(float))
 {
     this->priorActivationValue = this->value;        
     this->value = activationFunction(this->value);
