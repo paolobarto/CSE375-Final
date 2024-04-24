@@ -69,8 +69,8 @@ int main(int argc, char *argv[])
             }
 
             
-            if(i%10000==0)
-               nn.PrintLayerAverage();
+            // if(i%10000==0)
+            //    nn.PrintLayerAverage();
             nn.ResetValues();
         }
             time_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - started).count();
