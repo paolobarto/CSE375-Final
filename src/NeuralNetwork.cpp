@@ -171,8 +171,18 @@ int NeuralNetwork::ForwardPropagateImage(MNIST_Image img)
     }
     
     //argmax
+    float max = 0;
+    int index = 0;
+    for(int i=0; i<10; i++)
+    {
+        if(this->output.nodes[i].value>max)
+        {
+            max = this->output.nodes[i].value;
+            index = i;
+        }
+    }
 
-    return img.label;
+    return max;
 
 }
 
@@ -180,13 +190,17 @@ float NeuralNetwork::BackPropagateImage(MNIST_Image img)
 {
 
     // Error impact
-    int vsTarget[10];
+    float vsTarget[10];
     float delta = .0000001;
     for(int i=0; i<10; i++)
     {
         float y = i==img.label?1:0;
         float y_hat = this->output.nodes[i].value;
-        vsTarget[i] = -(y * log(y_hat + delta) + (1 - y) * log((1 - y_hat)+delta));
+        // float x = y * log(y_hat + delta);
+        // float x2 = (1 - y);
+        // float x3 = log((1 - y_hat) + delta);
+        // vsTarget[i] = -(x + x2 * x3);
+        vsTarget[i] = y - y_hat;
     }
 
     // for (int i = 0; i < 10; i++)
@@ -227,9 +241,9 @@ float NeuralNetwork::BackPropagateImage(MNIST_Image img)
     for (int i = 0; i < this->output.nodes.size(); i++)
     {
         if(vsTarget[i] != 0){
-            //runningChangeTotal += this->BackPropagateRecursive(&this->output.nodes[i], vsTarget[i], 1, 0);;
+            runningChangeTotal += this->BackPropagateRecursive(&this->output.nodes[i], vsTarget[i], 1, 0);;
             //this->BackPropagateRecursiveArchive(&this->output.nodes[i], vsTarget[i], 1);
-            runningChangeTotal += this->BackPropagateLogging(&this->output.nodes[i], vsTarget[i], 1);
+            //runningChangeTotal += this->BackPropagateLogging(&this->output.nodes[i], vsTarget[i], 1);
         }
     }
     ////cout<<"Backprop changeTotal: "<<runningChangeTotal<<endl;
@@ -269,7 +283,7 @@ float NeuralNetwork::BackPropagateImage(MNIST_Image img)
 }
 
 
-float NeuralNetwork::BackPropagateLogging(Node *target, int error, float runningInfluence)
+float NeuralNetwork::BackPropagateLogging(Node *target, float error, float runningInfluence)
 {
 
     // Base case: if the target node has no previous nodes, return the error
@@ -293,6 +307,8 @@ float NeuralNetwork::BackPropagateLogging(Node *target, int error, float running
 
     // Calculate the change in the target node's value
     float delta = error * derivative;
+    if(delta==0)
+        return 0;
 
     // Update weights and propagate error to previous layer nodes
     for (int i = 0; i < target->prevNodes.size(); i++)
@@ -313,7 +329,7 @@ float NeuralNetwork::BackPropagateLogging(Node *target, int error, float running
     return delta * runningInfluence;
 }
 
-float NeuralNetwork::BackPropagateRecursive(Node *target, int error, float runningInfluence, float runningChangeTotal)
+float NeuralNetwork::BackPropagateRecursive(Node *target, float error, float runningInfluence, float runningChangeTotal)
 {
 
     for(int i=0; i<target->prevNodes.size(); i++)
