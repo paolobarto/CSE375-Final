@@ -21,6 +21,7 @@ public:
     float previousTrainValue = 0;
     float maxIndex = 0;
     NeuralNetwork();
+    NeuralNetwork(int inputSize, int hiddenLayerSize, int outputSize, int hiddenLayers, vector<vector<float>> inputWeights, vector<vector<float>> hiddenWeights, vector<vector<float>> outputWeights);
     void CreateNetwork(int inputSize,int hiddenLayerSize, int outputSize, int hiddenLayers);
     int ForwardPropagateImage(MNIST_Image img);
     int ForwardPropagateSequential(MNIST_Image img);
@@ -36,7 +37,11 @@ public:
     float DerivativeSigmoid(float x);
     float DerivativeRELU(float x);
     float GetRandomWeight();
+
     vector<vector<float>> GetDistributedWeights(int inputSize, int outputSize);
+    vector<uint8_t> ExtractWeights(string message);
+    void UpdateWeights(vector<uint8_t> msg);
+
     ~NeuralNetwork();
 };
 

@@ -13,18 +13,19 @@
 BITS = 64
 
 # Output directory
-ODIR  = obj32
-tmp  := $(shell mkdir -p $(ODIR)/src)
+ODIR  = FD_Server/obj64
+tmp  := $(shell mkdir -p $(ODIR))
 
 # Basic compiler configuration and flags
 CXX      = g++
 CXXFLAGS = -MMD -ggdb -O3 -std=gnu++2a -m$(BITS)
 LDFLAGS	 = -m$(BITS) -lpthread 
 # The basenames of the c++ files that this program uses
-CXXFILES =  src/MNIST_Image src/Node  src/Layer src/NeuralNetwork src/main
+CXXFILES =  MNIST_Image Node  Layer NeuralNetwork
 
 # The executable we will build
-TARGET = $(ODIR)/main
+#TARGET = $(ODIR)/main
+TARGET = $(ODIR)/NeuralNetwork
 
 # Create the .o names from the CXXFILES
 OFILES = $(patsubst %, $(ODIR)/%.o, $(CXXFILES))

@@ -1,6 +1,6 @@
 #pragma once
-#ifndef MNIST_Image_H
-#define MNIST_Image_H
+// #ifndef MNIST_Image_H
+// #define MNIST_Image_H
 
 #include <cstdint>
 #include <string>
@@ -17,4 +17,4 @@ public:
     ~MNIST_Image();
 };
 
-#endif
+//#endif

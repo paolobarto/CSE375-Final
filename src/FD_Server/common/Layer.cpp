@@ -8,7 +8,7 @@ Layer::Layer(vector<Node> previousNodes)
 
 void Layer::ResetNodes()
 {
-    for(int i=0;i<this->nodes.size();i++)
+    for(size_t i=0;i<this->nodes.size();i++)
         this->nodes[i].ResetValue();
 }
 

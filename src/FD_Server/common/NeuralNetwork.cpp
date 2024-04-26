@@ -7,6 +7,84 @@ NeuralNetwork::NeuralNetwork()
     output = Layer();
     layers = vector<Layer *>();
 }
+NeuralNetwork::NeuralNetwork(int inputSize, int hiddenLayerSize, int outputSize, int hiddenLayers, vector<vector<float>> inputWeights, vector<vector<float>> hiddenWeights, vector<vector<float>> outputWeights){
+    this->CreateNetwork(inputSize, hiddenLayerSize, outputSize, hiddenLayers);
+    for(size_t i=0; i<inputWeights.size(); i++)
+    {
+        for(size_t j=0; j<inputWeights[i].size(); j++)
+        {
+            this->input.nodes[i].weight[j] = inputWeights[i][j];
+        }
+    }
+
+    for(size_t i=0; i<layers.size()-1; i++)
+    {
+        for(size_t j=0; j<layers[i]->nodes.size(); j++)
+        {
+            for(size_t k=0; k<hiddenWeights[j].size(); k++)
+            {
+                this->layers[i]->nodes[j].weight[k] = hiddenWeights[i][k];
+            }
+        }
+    }
+
+    for(size_t i=0; i<outputWeights.size(); i++)
+    {
+        for(size_t j=0; j<outputWeights[i].size(); j++)
+        {
+            this->layers[layers.size() - 1]->nodes[i].weight[j] = outputWeights[i][j];
+        }
+    }
+    //TODO Verify Weight Assignment
+}
+
+
+vector<uint8_t> NeuralNetwork::ExtractWeights(string message)
+{
+    vector<uint8_t> msg;
+    msg.insert(msg.begin(), message.begin(), message.end());
+    // number of nodes and weights and nodes is known and expected
+    // input layer
+    for(size_t i=0;i<this->input.nodes.size();i++)
+    {
+        for(size_t j=0;j<this->input.nodes[i].weight.size();j++)
+        {
+            float weight = this->input.nodes[i].weight[j];
+            for(size_t k=0; k<sizeof(float); k++)
+            {
+                msg.push_back(((uint8_t*)&weight)[k]);
+            }
+        }
+    }
+    // hidden layers
+    for(size_t i=0;i<this->layers.size()-1;i++)
+    {
+        for(size_t j=0;j<this->layers[i]->nodes.size();j++)
+        {
+            for(size_t k=0;k<this->layers[i]->nodes[j].weight.size();k++)
+            {
+                float weight = this->layers[i]->nodes[j].weight[k];
+                for(size_t l=0; l<sizeof(float); l++)
+                {
+                    msg.push_back(((uint8_t*)&weight)[l]);
+                }
+            }
+        }
+    }
+    // output layer
+    for(size_t i=0; i<this->layers[layers.size()-1]->nodes.size();i++)
+    {
+        for(size_t j=0; j<this->layers[layers.size()-1]->nodes[i].weight.size();j++)
+        {
+            float weight = this->layers[layers.size()-1]->nodes[i].weight[j];
+            for(size_t k=0; k<sizeof(float); k++)
+            {
+                msg.push_back(((uint8_t*)&weight)[k]);
+            }
+        }
+    }
+    return msg;
+}
 
 
 void NeuralNetwork::CreateNetwork(int inputSize, int hiddenLayerSize, int outputSize, int hiddenLayers)
@@ -60,16 +138,16 @@ int NeuralNetwork::ForwardPropagateSequential(MNIST_Image img)
     }
 
     // Forward propagate through hidden layers
-    for (int i = 0; i < layers.size(); i++)
+    for (size_t i = 0; i < layers.size(); i++)
     {
         // Iterate over nodes in current layer
-        for (int j = 0; j < layers[i]->nodes.size(); j++)
+        for (size_t j = 0; j < layers[i]->nodes.size(); j++)
         {
             Node &node = layers[i]->nodes[j];
             float sum = 0;
 
             // Iterate over nodes in previous layer
-            for (int k = 0; k < node.prevNodes.size(); k++)
+            for (size_t k = 0; k < node.prevNodes.size(); k++)
             {
                 // Calculate weighted sum
                 sum += node.weight[k] * node.prevNodes[k]->value;
@@ -81,13 +159,13 @@ int NeuralNetwork::ForwardPropagateSequential(MNIST_Image img)
     }
 
     // Forward propagate through output layer
-    for (int i = 0; i < output.nodes.size(); i++)
+    for (size_t i = 0; i < output.nodes.size(); i++)
     {
         Node &node = output.nodes[i];
         float sum = 0;
 
         // Iterate over nodes in previous layer
-        for (int j = 0; j < node.prevNodes.size(); j++)
+        for (size_t j = 0; j < node.prevNodes.size(); j++)
         {
             // Calculate weighted sum
             sum += node.prevNodes[j]->weight[i] * node.prevNodes[j]->value;
@@ -100,7 +178,7 @@ int NeuralNetwork::ForwardPropagateSequential(MNIST_Image img)
     // Find index of node with highest value in output layer (classification)
     int maxIndex = 0;
     float maxValue = output.nodes[0].value;
-    for (int i = 1; i < output.nodes.size(); i++)
+    for (size_t i = 1; i < output.nodes.size(); i++)
     {
         if (output.nodes[i].value > maxValue)
         {
@@ -123,7 +201,7 @@ int NeuralNetwork::ForwardPropagateImage(MNIST_Image img)
     }
 
     //Layers
-    for(int i=0;i<this->layers.size() + 1;i++)
+    for(size_t i=0;i<this->layers.size() + 1;i++)
     {
         Layer *pastLayer = new Layer();
         Layer *currLayer = new Layer();
@@ -142,8 +220,8 @@ int NeuralNetwork::ForwardPropagateImage(MNIST_Image img)
         }
 
 
-        for(int j=0; j<pastLayer->nodes.size();j++)
-            for(int k=0; k<currLayer->nodes.size(); k++){
+        for(size_t j=0; j<pastLayer->nodes.size();j++)
+            for(size_t k=0; k<currLayer->nodes.size(); k++){
                 float sum = pastLayer->nodes[j].value * pastLayer->nodes[j].weight[k];
                 if(isnan(sum))
                     cout<<"NAN"<<endl;
@@ -153,13 +231,13 @@ int NeuralNetwork::ForwardPropagateImage(MNIST_Image img)
 
 
         if(i!=this->layers.size())
-            for(int j=0; j<currLayer->nodes.size();j++){
+            for(size_t j=0; j<currLayer->nodes.size();j++){
                 //currLayer->nodes[j].ApplyRELU([](float x){return x>0?x:0;});
                 currLayer->nodes[j].ApplyRELU([](float x){return x>0?x:(float)(0.1*x);}); // leakyRelu
                 //cout<<"RELU Before: "<<currLayer->nodes[j].priorActivationValue<<" After: "<<currLayer->nodes[j].value<<endl;
             }
         else
-             for(int j=0; j<currLayer->nodes.size();j++){
+             for(size_t j=0; j<currLayer->nodes.size();j++){
                 currLayer->nodes[j].ApplySigmoid([](float x){return (1/(1+exp(-x)));});
                 //cout<<"Sigmoid Before: "<<currLayer->nodes[j].priorActivationValue<<" After: "<<currLayer->nodes[j].value<<endl;
              }
@@ -194,7 +272,7 @@ float NeuralNetwork::BackPropagateImage(MNIST_Image img)
 
     // Error impact
     float vsTarget[10];
-    float delta = .0000001;
+    //float delta = .0000001;
     for(int i=0; i<10; i++)
     {
         float y = i==img.label?1:0;
@@ -241,7 +319,7 @@ float NeuralNetwork::BackPropagateImage(MNIST_Image img)
     //     debugPrevLayerWeights.push_back(layer);
     // }
 
-    for (int i = 0; i < this->output.nodes.size(); i++)
+    for (size_t i = 0; i < this->output.nodes.size(); i++)
     {
         if(vsTarget[i] != 0){
             //runningChangeTotal += this->BackPropagateRecursive(&this->output.nodes[i], vsTarget[i], 1, 0);;
@@ -297,7 +375,7 @@ float NeuralNetwork::BackPropagateLogging(Node *target, float error, float runni
 
     // Calculate the derivative of the activation function at the target node's value
     float derivative;
-    if (target->layer != this->layers.size() + 1)
+    if (target->layer != (int)(this->layers.size()) + 1)
     {
         // Hidden layer: ReLU activation
         derivative = DerivativeRELU(target->value);
@@ -314,7 +392,7 @@ float NeuralNetwork::BackPropagateLogging(Node *target, float error, float runni
         return 0;
 
     // Update weights and propagate error to previous layer nodes
-    for (int i = 0; i < target->prevNodes.size(); i++)
+    for (size_t i = 0; i < target->prevNodes.size(); i++)
     {
         // Calculate the change in weight
         float weightChange = delta * target->prevNodes[i]->value * LEARNING_RATE;
@@ -339,14 +417,14 @@ float NeuralNetwork::BackPropagateLogging(Node *target, float error, float runni
 float NeuralNetwork::BackPropagateRecursive(Node *target, float error, float runningInfluence, float runningChangeTotal)
 {
 
-    for(int i=0; i<target->prevNodes.size(); i++)
+    for(size_t i=0; i<target->prevNodes.size(); i++)
     {
         // Calculate the partial derivative of the error with respect to the weight
         float partialDeriv = error;
         float influence = runningInfluence;
         float changeTotal = 0;
         //Given a node, calculate contributing influence then repeat for previous nodes
-        if(target->layer == this->layers.size()+1)
+        if(target->layer == (int)(this->layers.size())+1)
         {
             // This is the output layer
             // Calculate the derivative of the sigmoid
@@ -405,13 +483,13 @@ float NeuralNetwork::BackPropagateRecursive(Node *target, float error, float run
 
 void NeuralNetwork::BackPropagateRecursiveArchive(Node *target, int error, float runningInfluence)
 {
-    for (int i = 0; i < target->prevNodes.size(); i++)
+    for (size_t i = 0; i < target->prevNodes.size(); i++)
     {
         // Calculate the partial derivative of the error with respect to the weight
         float partialDeriv = error;
         float influence = runningInfluence;
         // Given a node, calculate contributing influence then repeat for previous nodes
-        if (target->layer == this->layers.size() + 1)
+        if (target->layer == (int)(this->layers.size()) + 1)
         {
             // This is the output layer
             // Calculate the derivative of the sigmoid
@@ -448,7 +526,7 @@ void NeuralNetwork::ResetValues()
 {
     this->input.ResetNodes();
 
-    for(int i=0; i<this->layers.size(); i++)
+    for(size_t i=0; i<this->layers.size(); i++)
         this->layers[i]->ResetNodes();
 
     this->output.ResetNodes();
@@ -464,8 +542,8 @@ void NeuralNetwork::AddLayer(Layer& layer)
         // Connect the input layer to this layer
         vector<vector<float>> distrubutedWeights = this->GetDistributedWeights(this->input.nodes.size(), layer.nodes.size());
 
-        for(int i=0; i<this->input.nodes.size();i++) {
-            for(int j=0;j<layer.nodes.size();j++){
+        for(size_t i=0; i<this->input.nodes.size();i++) {
+            for(size_t j=0;j<layer.nodes.size();j++){
                 this->input.nodes[i].weight.push_back(distrubutedWeights[i][j]);
                 //this->input.nodes[i].prevNodes.push_back(layer.nodes[j]);
                 layer.nodes[j].prevNodes.push_back(&this->input.nodes[i]);
@@ -478,9 +556,9 @@ void NeuralNetwork::AddLayer(Layer& layer)
         vector<vector<float>> distrubutedWeights = this->GetDistributedWeights(previousLayer->nodes.size(), layer.nodes.size());
 
 
-        for (int i = 0; i < previousLayer->nodes.size(); i++)
+        for (size_t i = 0; i < previousLayer->nodes.size(); i++)
         {
-            for (int j = 0; j < layer.nodes.size(); j++)
+            for (size_t j = 0; j < layer.nodes.size(); j++)
             {
                 previousLayer->nodes[i].weight.push_back(distrubutedWeights[i][j]);
                 //this->input.nodes[i].prevNodes.push_back(layer.nodes[j]);
@@ -501,9 +579,9 @@ void NeuralNetwork::UpdateLastHidden()
     vector<vector<float>> distrubutedWeights = this->GetDistributedWeights(previousLayer->nodes.size(), this->output.nodes.size());
 
 
-    for (int i = 0; i < previousLayer->nodes.size(); i++)
+    for (size_t i = 0; i < previousLayer->nodes.size(); i++)
     {
-        for (int j = 0; j < this->output.nodes.size(); j++)
+        for (size_t j = 0; j < this->output.nodes.size(); j++)
         {
             previousLayer->nodes[i].weight.push_back(distrubutedWeights[i][j]);
             this->output.nodes[j].prevNodes.push_back(&previousLayer->nodes[i]);
@@ -542,10 +620,10 @@ void NeuralNetwork::PrintLayerAverage()
 {
     float sum = 0;
     float weightSum = 0;
-    for(int i=0; i<this->input.nodes.size();i++)
+    for(size_t i=0; i<this->input.nodes.size();i++)
     {
         sum+=this->input.nodes[i].value;
-        for(int j=0; j<this->input.nodes[i].weight.size();j++)
+        for(size_t j=0; j<this->input.nodes[i].weight.size();j++)
         {
             weightSum+=this->input.nodes[i].weight[j];
         }
@@ -553,14 +631,14 @@ void NeuralNetwork::PrintLayerAverage()
     cout<<"Input Layer Value Average: "<<sum/this->input.nodes.size()<<endl;
     cout<<"Input Layer Weight Average: "<<weightSum/(this->input.nodes.size()*this->input.nodes[0].weight.size())<<endl;
 
-    for(int i=0; i<this->layers.size();i++)
+    for(size_t i=0; i<this->layers.size();i++)
     {
         sum = 0;
-        for(int j=0; j<this->layers[i]->nodes.size();j++)
+        for(size_t j=0; j<this->layers[i]->nodes.size();j++)
         {
             sum+=this->layers[i]->nodes[j].value;
             cout<<"("<<this->layers[i]->nodes[j].value<<","<<this->layers[i]->nodes[j].priorActivationValue<<"),";
-            for(int k=0; k<this->layers[i]->nodes[j].weight.size();k++)
+            for(size_t k=0; k<this->layers[i]->nodes[j].weight.size();k++)
             {
                 weightSum+=this->layers[i]->nodes[j].weight[k];
             }
@@ -572,7 +650,7 @@ void NeuralNetwork::PrintLayerAverage()
     }
 
     sum = 0;
-    for(int i=0; i<this->output.nodes.size();i++)
+    for(size_t i=0; i<this->output.nodes.size();i++)
     {
         sum+=this->output.nodes[i].priorActivationValue;
     }
@@ -597,7 +675,47 @@ float NeuralNetwork::DerivativeRELU(float x)
     return x>0?1:(float)(0.1);
 }
 
+void NeuralNetwork::UpdateWeights(vector<uint8_t> msg)
+{
+    ResetValues();
+    int byteIndex = 8;
+    for(size_t i=0; i<this->input.nodes.size(); i++)
+    {
+        for(size_t j=0; j<this->input.nodes[i].weight.size(); j++)
+        {
+            float weight = 0;
+            memcpy(&weight, msg.data() + byteIndex, sizeof(float));
+            byteIndex += sizeof(float);
+            this->input.nodes[i].weight[j] = weight;
+        }
+    }
 
+    for(size_t i=0; i<this->layers.size()-1; i++)
+    {
+        for(size_t j=0; j<this->layers[i]->nodes.size(); j++)
+        {
+            for(size_t k=0; k<this->layers[i]->nodes[j].weight.size(); k++)
+            {
+                float weight = 0;
+                memcpy(&weight, msg.data() + byteIndex, sizeof(float));
+                byteIndex += sizeof(float);
+                this->layers[i]->nodes[j].weight[k] = weight;
+            }
+        }
+    }
+
+    for(size_t i=0; i<this->output.nodes.size(); i++)
+    {
+        for(size_t j=0; j<this->output.nodes[i].weight.size(); j++)
+        {
+            float weight = 0;
+            memcpy(&weight, msg.data() + byteIndex, sizeof(float));
+            byteIndex += sizeof(float);
+            this->output.nodes[i].weight[j] = weight;
+        }
+    }
+
+}
 
 
 
