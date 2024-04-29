@@ -30,6 +30,21 @@ void shuffleVector(std::vector<MNIST_Image> &vec)
   std::shuffle(vec.begin(), vec.end(), rng);
 }
 
+int connect_to_server(int *&sd, sockaddr_in &sendSockAddr)
+{
+  cout<<"Sd before: "<<*sd<<endl;
+  *sd = socket(AF_INET, SOCK_STREAM, 0);
+  int status = connect(*sd,
+                       (sockaddr *)&sendSockAddr, sizeof(sendSockAddr));
+  if (status < 0)
+  {
+    cout << "Error connecting to socket!" << endl;
+    return -1;
+  }
+  cout << "Connected to the server!" << endl;
+  return 0;
+}
+
 /// These are all of the commands that the client supports, with descriptions
 /// that are formatted nicely for printing in `usage()`.
 static vector<pair<string, const char *>> commands = {
@@ -140,7 +155,7 @@ int main(int argc, char **argv) {
 
   // Connect to the server and perform the appropriate operation
   //int sd = connect_to_server(args->server, args->port);
-  cout << "Connecting to the server..." << endl;
+  //cout << "Connecting to the server..." << endl;
   struct hostent *host = gethostbyname(args->server.c_str());
   sockaddr_in sendSockAddr;
   bzero((char *)&sendSockAddr, sizeof(sendSockAddr));
@@ -148,20 +163,22 @@ int main(int argc, char **argv) {
   sendSockAddr.sin_addr.s_addr =
       inet_addr(inet_ntoa(*(struct in_addr *)*host->h_addr_list));
   sendSockAddr.sin_port = htons(args->port);
-  int clientSd = socket(AF_INET, SOCK_STREAM, 0);
+  int *clientSd = new int();
+  //int *clientSd = new int(socket(AF_INET, SOCK_STREAM, 0));
+  //int clientSd = socket(AF_INET, SOCK_STREAM, 0);
 
-  int status = connect(clientSd,
-                       (sockaddr *)&sendSockAddr, sizeof(sendSockAddr));
-  if (status < 0)
-  {
-    cout << "Error connecting to socket!" << endl;
-    return -1;
-  }
-  cout << "Connected to the server!" << endl;
+  // int status = connect(clientSd,
+  //                      (sockaddr *)&sendSockAddr, sizeof(sendSockAddr));
+  // if (status < 0)
+  // {
+  //   cout << "Error connecting to socket!" << endl;
+  //   return -1;
+  // }
+  // cout << "Connected to the server!" << endl;
 
   ContextManager sdc([&]() { 
     //TODO look into if server can handle removing existance of training client
-    close(clientSd); 
+    close(*clientSd); 
     });
 
   // read csv
@@ -202,23 +219,58 @@ int main(int argc, char **argv) {
   // first get the weights of the current network
   cout<<"Creating Neural Network."<<endl;
   NeuralNetwork *network = new NeuralNetwork();
-
+  network->CreateNetwork(LEN_INPUTNODES, LEN_HIDDENNODES, LEN_OUTPUTNODES, NUM_HIDDENLAYERS);
+  network->PrintLayerAverage();
   // then train the network
-  const int EPOCHS = 1;
-  const int DEBUGBATCH = 1000;
+  const int EPOCHS = 10;
+  const int DEBUGBATCH = 30000;
 
   for(int i=0; i<EPOCHS; i++)
   {
-    cout<<"Requesting network from server."<<endl;
-    req_network(clientSd, network);
-    cout<<"Epoch "<<i<<" started."<<endl;
-    for(int j=0; j<DEBUGBATCH; j++)
-    {
-        network->BackPropagateImage(trainImages[j]);
+  cout << "-------- Epoch loop: " << i << endl;
+  shuffleVector(trainImages);
+  int status = connect_to_server(clientSd, sendSockAddr);
+  if (status < 0)
+  {
+    cout << "Error connecting to server." << endl;
+    return 1;
     }
-    cout<<"Epoch "<<i<<" finished."<<endl;
+    cout<<"Client Sd: "<<*clientSd<<endl;
+    cout<<"Requesting network from server."<<endl;
+    req_network(*clientSd, network);
+    //return 1;
+    cout<<"Network updated to: "<<endl;
+    network->PrintLayerAverage();
+    cout<<"Epoch "<<i+1<<" started."<<endl;
+    for(size_t j=0; j<DEBUGBATCH; j++)
+    {           
+        int value = network->ForwardPropagateImage(trainImages[j]);
+        if(value == -100)
+        {
+          cout<<"Error in Forward Propagation"<<endl;
+          return 1;
+        }
+        if(value != trainImages[j].label) {
+
+          network->BackPropagateImage(trainImages[j]);
+        }
+
+        if(j%10000==0){
+          cout<<"Batch "<<j<<" finished."<<endl;
+          network->PrintLayerAverage();
+        }
+
+        network->ResetValues();
+    }
+    cout<<"Epoch "<<i+1<<" finished."<<endl;
     cout<<"Sending updated weights to server."<<endl;
-    req_update(clientSd, network);
+    status = connect_to_server(clientSd, sendSockAddr);
+    if(status < 0)
+    {
+      cout<<"Error connecting to server."<<endl;
+      return 1;
+    }
+    req_update(*clientSd, network);
   }
 
 
@@ -231,11 +283,5 @@ int main(int argc, char **argv) {
   //     func[i](sd, pubkey, args->username, args->userpass, args->arg1,
   //             args->arg2);
    delete args;
-
-
-
-
-
-
   return 0;
 }

@@ -23,7 +23,9 @@ using namespace std;
 /// @param network The Neural Network of the server
 ///
 /// @return true if the server should halt immediately, false otherwise
-bool parse_request(int sd, NeuralNetwork *network, atomic<int> *trainingThreads)
+//bool parse_request(int sd, NeuralNetwork *network, atomic<int> *trainingThreads)
+
+bool parse_request(int sd, NeuralNetwork *network, NeuralNetwork *sumNetwork,thread_pool *pool)
 {
     cout<<"Parsing request\n";
     // get RKBlock off the socket
@@ -52,7 +54,7 @@ bool parse_request(int sd, NeuralNetwork *network, atomic<int> *trainingThreads)
         if (dataConsumed >= 8 + LEN_DATABLOCK)
             break;
     }
-
+    cout<<"Size of message Recieved: "<<dataConsumed<<endl;
     string cmd(msg.begin(), msg.begin() + 8);
     cout<<"\nCommand: "<<cmd<<endl;
 
@@ -62,7 +64,7 @@ bool parse_request(int sd, NeuralNetwork *network, atomic<int> *trainingThreads)
     decltype(handle_train) *cmds[] = {handle_train, handle_update};
     for (size_t i = 0; i < s.size(); ++i)
         if (cmd == s[i])
-            return cmds[i](network, msg, trainingThreads);
+            return cmds[i](sd, network,sumNetwork, msg, pool);
 
     return false;
 }

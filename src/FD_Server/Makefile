@@ -6,14 +6,14 @@ EXESUFFIX = exe
 # Names for building the client:
 CLIENT_MAIN     = client
 CLIENT_CXX      = requests client
-CLIENT_COMMON   = MNIST_Image Node Layer NeuralNetwork 
+CLIENT_COMMON   = MNIST_Image Node Layer NeuralNetwork
 CLIENT_PROVIDED = 
 
 
 # Names for building the server
 SERVER_MAIN     = 	server
 SERVER_CXX      = 	responses parsing 
-SERVER_COMMON   =   server my_pool Node Layer NeuralNetwork 
+SERVER_COMMON   =   server my_pool Node Layer NeuralNetwork MNIST_Image
 SERVER_PROVIDED =  
 
 

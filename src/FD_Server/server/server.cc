@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <fstream>
 
 #include "../common/contextmanager.h"
 //#include "../common/crypto.h"
@@ -90,14 +91,32 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  fstream testFile("../../data/MNIST_CSV/mnist_test.csv", ios::in);
+  if (!testFile.is_open())
+  {
+    cout << "Error: File not found" << endl;
+    return 1;
+  }
+   vector<MNIST_Image> testImages;
+
+  string line;
+  while (getline(testFile, line))
+  {
+    testImages.push_back(MNIST_Image(line));
+  }
+  testFile.close();
+
   // print the configuration
   cout << "Listening on port " << args->port << "\n";
 
 
   NeuralNetwork *network = new NeuralNetwork();
   network->CreateNetwork(784, 16, 10, 2);
+  network->PrintLayerAverage();
 
-
+  NeuralNetwork *sumNetwork = new NeuralNetwork();
+  sumNetwork->CreateNetwork(784, 16, 10, 2);
+  sumNetwork->ResetWeights();
 
 
   
@@ -129,12 +148,25 @@ int main(int argc, char **argv) {
   ContextManager csd([&]() { close(sd); });
   // Create a thread pool that will invoke parse_request (from a pool thread)
   // each time a new socket is given to it.
-  thread_pool *pool = pool_factory(args->threads, [&](int sd, atomic<int> *training_clients) {
-    return parse_request(sd, network, training_clients);
-  });
+  thread_pool *pool = pool_factory(args->threads, [&](int sd, thread_pool *poolParam) {
+    return parse_request(sd, network, sumNetwork, poolParam);
+  }, [&](){
+    int correctAnswers = 0;
+    for(size_t i=0;i<testImages.size();i++)
+    {
+      int guess = network->ForwardPropagateImage(testImages[i]);
+      if(guess == testImages[i].label)
+      {
+        correctAnswers++;
+      }
+    }
+    cout<<"Correct Answers: "<<correctAnswers<<endl;
+
+  }, network, sumNetwork);
 
   pool->set_shutdown_handler([&]() {
     cout<<"Closing Socket Descriptor\n";
+    pool->trainingTreads->fetch_sub(1);
     close(sd);
   });
 // sockaddr_in clientAddr;
@@ -152,7 +184,7 @@ while (!int_signal_received) {
 
   if (newSd < 0) {
     perror("accept() failed");
-    //return 0;
+    return 0;
     continue;
   }
 

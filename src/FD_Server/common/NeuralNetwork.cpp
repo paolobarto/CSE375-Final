@@ -39,23 +39,39 @@ NeuralNetwork::NeuralNetwork(int inputSize, int hiddenLayerSize, int outputSize,
 }
 
 
+// NeuralNetwork::NeuralNetwork(int inputSize, int hiddenLayerSize, int outputSize, int hiddenLayers)
+// {
+
+// }
+
 vector<uint8_t> NeuralNetwork::ExtractWeights(string message)
 {
     vector<uint8_t> msg;
     msg.insert(msg.begin(), message.begin(), message.end());
     // number of nodes and weights and nodes is known and expected
     // input layer
+    // cout<<"input weight size: "<<this->input.nodes[0].weight.size()<<endl;
+    // cout<<"Size per float: "<<sizeof(float)<<endl;
+    // cout<<"input size: "<<this->input.nodes.size()<<endl;
     for(size_t i=0;i<this->input.nodes.size();i++)
     {
         for(size_t j=0;j<this->input.nodes[i].weight.size();j++)
         {
             float weight = this->input.nodes[i].weight[j];
-            for(size_t k=0; k<sizeof(float); k++)
-            {
-                msg.push_back(((uint8_t*)&weight)[k]);
-            }
+            // for(size_t k=0; k<sizeof(float); k++)
+            // {
+                //msg.push_back(((uint8_t*)&weight)[k]);
+                uint8_t buffer[sizeof(float)];
+                // Copy the memory representation of the float to the buffer
+                std::memcpy(buffer, &weight, sizeof(float));
+                // Append the bytes from the buffer to the vector
+                msg.insert(msg.end(), buffer, buffer + sizeof(float));
+            //}
+            
         }
     }
+
+   // cout<<"Input Layer Weights: "<<msg.size()<<endl;
     // hidden layers
     for(size_t i=0;i<this->layers.size()-1;i++)
     {
@@ -71,6 +87,8 @@ vector<uint8_t> NeuralNetwork::ExtractWeights(string message)
             }
         }
     }
+
+    //cout<<"Plus Hidden Layer Weights: "<<msg.size()<<endl;
     // output layer
     for(size_t i=0; i<this->layers[layers.size()-1]->nodes.size();i++)
     {
@@ -83,10 +101,15 @@ vector<uint8_t> NeuralNetwork::ExtractWeights(string message)
             }
         }
     }
+   // cout<<"Plus Output Layer Weights: "<<msg.size()<<endl;
     return msg;
 }
 
-
+/// @brief Create  Network With space allocated with random weights
+/// @param inputSize 
+/// @param hiddenLayerSize 
+/// @param outputSize 
+/// @param hiddenLayers 
 void NeuralNetwork::CreateNetwork(int inputSize, int hiddenLayerSize, int outputSize, int hiddenLayers)
 {
     // Create input layer
@@ -223,8 +246,15 @@ int NeuralNetwork::ForwardPropagateImage(MNIST_Image img)
         for(size_t j=0; j<pastLayer->nodes.size();j++)
             for(size_t k=0; k<currLayer->nodes.size(); k++){
                 float sum = pastLayer->nodes[j].value * pastLayer->nodes[j].weight[k];
-                if(isnan(sum))
-                    cout<<"NAN"<<endl;
+                if(isnan(sum)){
+                    cout<<"NAN Detected in Forward Propagation"<<endl;
+                    cout<<"location "<<i<<","<<j<<","<<k<<endl;
+                    cout<<"Past Layer Value: "<<pastLayer->nodes[j].value<<endl;
+                    cout<<"Past Layer Weight: "<<pastLayer->nodes[j].weight[k]<<endl; 
+                    
+                    return -100;
+                    // cout<<"NAN"<<endl;
+                }
                 currLayer->nodes[k].IncrementValue(sum);
                 //cout<<pastLayer->nodes[j].value<<"*"<<pastLayer->nodes[j].weight[k]<<" = "<<currLayer->nodes[k].value<<endl;
             }
@@ -323,8 +353,8 @@ float NeuralNetwork::BackPropagateImage(MNIST_Image img)
     {
         if(vsTarget[i] != 0){
             //runningChangeTotal += this->BackPropagateRecursive(&this->output.nodes[i], vsTarget[i], 1, 0);;
-            //this->BackPropagateRecursiveArchive(&this->output.nodes[i], vsTarget[i], 1);
-            runningChangeTotal += this->BackPropagateLogging(&this->output.nodes[i], vsTarget[i], 1);
+            this->BackPropagateRecursiveArchive(&this->output.nodes[i], vsTarget[i], 1);
+            //runningChangeTotal += this->BackPropagateLogging(&this->output.nodes[i], vsTarget[i], 1);
         }
     }
     ////cout<<"Backprop changeTotal: "<<runningChangeTotal<<endl;
@@ -620,6 +650,8 @@ void NeuralNetwork::PrintLayerAverage()
 {
     float sum = 0;
     float weightSum = 0;
+
+
     for(size_t i=0; i<this->input.nodes.size();i++)
     {
         sum+=this->input.nodes[i].value;
@@ -628,12 +660,14 @@ void NeuralNetwork::PrintLayerAverage()
             weightSum+=this->input.nodes[i].weight[j];
         }
     }
+    cout<<"Debug Weight Sum: "<<weightSum<<endl;
     cout<<"Input Layer Value Average: "<<sum/this->input.nodes.size()<<endl;
     cout<<"Input Layer Weight Average: "<<weightSum/(this->input.nodes.size()*this->input.nodes[0].weight.size())<<endl;
 
     for(size_t i=0; i<this->layers.size();i++)
     {
         sum = 0;
+        weightSum = 0;
         for(size_t j=0; j<this->layers[i]->nodes.size();j++)
         {
             sum+=this->layers[i]->nodes[j].value;
@@ -647,6 +681,7 @@ void NeuralNetwork::PrintLayerAverage()
         cout<<endl;
         cout<<"Hidden Layer "<<i+1<<" Average: "<<sum/this->layers[i]->nodes.size()<<endl;
         cout<<"Hidden Layer "<<i+1<<" Weight Average: "<<weightSum/(this->layers[i]->nodes.size()*this->layers[i]->nodes[0].weight.size())<<endl;
+        cout<<"Debug Weight Sum: "<<weightSum<<endl;
     }
 
     sum = 0;
@@ -678,20 +713,47 @@ float NeuralNetwork::DerivativeRELU(float x)
 void NeuralNetwork::UpdateWeights(vector<uint8_t> msg)
 {
     ResetValues();
+
+    // cout<<"First 3 bytes:"<<endl;
+    // for(size_t i=0; i<sizeof(float)*3;i++)
+    // {
+    //     cout<<(int)msg[i]<<endl;
+    // }
+
+
     int byteIndex = 8;
+       // cout<<"input nodes size: "<<this->input.nodes.size()<<endl;
+    //float weightSum = 0;
     for(size_t i=0; i<this->input.nodes.size(); i++)
-    {
+    {   
         for(size_t j=0; j<this->input.nodes[i].weight.size(); j++)
         {
             float weight = 0;
-            memcpy(&weight, msg.data() + byteIndex, sizeof(float));
+            //memcpy(&weight, msg.data() + byteIndex, sizeof(float));
+            uint8_t buffer[sizeof(float)];
+            // Copy the bytes from the vector to the buffer
+            std::memcpy(buffer, msg.data() + byteIndex, sizeof(float));
+
+            // Interpret the buffer as a float
+            std::memcpy(&weight, buffer, sizeof(float));
+            //return floatValue;
             byteIndex += sizeof(float);
+            if(isnan(weight))
+            {
+                cout<<"NAN Detected in Update Weights"<<endl;
+                cout<<"location "<<i<<","<<j<<endl;
+                cout<<"Weight: "<<weight<<endl;
+                return;
+            }
             this->input.nodes[i].weight[j] = weight;
+            //weightSum+=weight;
         }
     }
-
-    for(size_t i=0; i<this->layers.size()-1; i++)
-    {
+   // cout<<"Input Layer Weight Sum: "<<weightSum<<endl;
+    //float intermediateSum = 0;
+    for(size_t i=0; i<this->layers.size(); i++)
+    {   
+        //weightSum = 0;
         for(size_t j=0; j<this->layers[i]->nodes.size(); j++)
         {
             for(size_t k=0; k<this->layers[i]->nodes[j].weight.size(); k++)
@@ -699,25 +761,150 @@ void NeuralNetwork::UpdateWeights(vector<uint8_t> msg)
                 float weight = 0;
                 memcpy(&weight, msg.data() + byteIndex, sizeof(float));
                 byteIndex += sizeof(float);
+                if (isnan(weight))
+                {
+                    cout << "NAN Detected in Update Weights" << endl;
+                    cout << "location " << i << "," << j << endl;
+                    cout << "Weight: " << weight << endl;
+                    return;
+                }
                 this->layers[i]->nodes[j].weight[k] = weight;
+                //weightSum+=weight;
+                //intermediateSum+=weight;
             }
+            //cout<<"Hidden Layer "<<i<<" Node "<<j<<" Weight Sum: "<<intermediateSum<<endl;
         }
+       // cout<<"Hidden Layer "<<i<<" Weight Sum: "<<weightSum<<endl;
     }
 
     for(size_t i=0; i<this->output.nodes.size(); i++)
-    {
+    {   
         for(size_t j=0; j<this->output.nodes[i].weight.size(); j++)
         {
             float weight = 0;
             memcpy(&weight, msg.data() + byteIndex, sizeof(float));
             byteIndex += sizeof(float);
+            if (isnan(weight))
+            {
+                cout << "NAN Detected in Update Weights" << endl;
+                cout << "location " << i << "," << j << endl;
+                cout << "Weight: " << weight << endl;
+                return;
+            }
             this->output.nodes[i].weight[j] = weight;
+            //weightSum+=weight;
         }
     }
 
 }
 
+// void addWeights(vector<uint8_t> msg);
+// void averageWeights(NeuralNetwork *sumNetwork, int numClients);
 
+void NeuralNetwork::AddWeights(vector<uint8_t> msg)
+{
+    int byteIndex = 8;
+    //float weightSum = 0;
+    for (size_t i = 0; i < this->input.nodes.size(); i++)
+    {
+        for (size_t j = 0; j < this->input.nodes[i].weight.size(); j++)
+        {
+            float weight = 0;
+            // memcpy(&weight, msg.data() + byteIndex, sizeof(float));
+            uint8_t buffer[sizeof(float)];
+            // Copy the bytes from the vector to the buffer
+            std::memcpy(buffer, msg.data() + byteIndex, sizeof(float));
+
+            // Interpret the buffer as a float
+            std::memcpy(&weight, buffer, sizeof(float));
+            // return floatValue;
+            byteIndex += sizeof(float);
+            this->input.nodes[i].weight[j] += weight;
+            //weightSum += weight;
+        }
+    }
+    //cout << "Input Layer Weight Sum: " << weightSum << endl;
+    // float intermediateSum = 0;
+    for (size_t i = 0; i < this->layers.size(); i++)
+    {
+        //weightSum = 0;
+        for (size_t j = 0; j < this->layers[i]->nodes.size(); j++)
+        {
+            for (size_t k = 0; k < this->layers[i]->nodes[j].weight.size(); k++)
+            {
+                float weight = 0;
+                memcpy(&weight, msg.data() + byteIndex, sizeof(float));
+                byteIndex += sizeof(float);
+                this->layers[i]->nodes[j].weight[k]+= weight;
+                //weightSum += weight;
+                // intermediateSum+=weight;
+            }
+            // cout<<"Hidden Layer "<<i<<" Node "<<j<<" Weight Sum: "<<intermediateSum<<endl;
+        }
+     //   cout << "Hidden Layer " << i << " Weight Sum: " << weightSum << endl;
+    }
+
+    // for (size_t i = 0; i < this->output.nodes.size(); i++)
+    // {
+    //     for (size_t j = 0; j < this->output.nodes[i].weight.size(); j++)
+    //     {
+    //         float weight = 0;
+    //         memcpy(&weight, msg.data() + byteIndex, sizeof(float));
+    //         byteIndex += sizeof(float);
+    //         this->output.nodes[i].weight[j] = weight;
+    //         weightSum += weight;
+    //     }
+    // }
+}
+
+void NeuralNetwork::ResetWeights()
+{
+    for(size_t i=0; i<this->input.nodes.size(); i++)
+    {
+        for(size_t j=0; j<this->input.nodes[i].weight.size(); j++)
+        {
+            this->input.nodes[i].weight[j] = 0;
+        }
+    }
+
+    for(size_t i=0; i<this->layers.size(); i++)
+    {
+        for(size_t j=0; j<this->layers[i]->nodes.size(); j++)
+        {
+            for(size_t k=0; k<this->layers[i]->nodes[j].weight.size(); k++)
+            {
+                this->layers[i]->nodes[j].weight[k] = 0;
+            }
+        }
+    }
+
+}
+
+void NeuralNetwork::AverageWeights(NeuralNetwork *sumNetwork, int numClients)
+{
+    for (size_t i = 0; i < this->input.nodes.size(); i++)
+    {
+        for (size_t j = 0; j < this->input.nodes[i].weight.size(); j++)
+        {
+            // return floatValue;
+            this->input.nodes[i].weight[j] = sumNetwork->input.nodes[i].weight[j] / numClients;
+        }
+    }
+    // cout << "Input Layer Weight Sum: " << weightSum << endl;
+    //  float intermediateSum = 0;
+    for (size_t i = 0; i < this->layers.size(); i++)
+    {
+        for (size_t j = 0; j < this->layers[i]->nodes.size(); j++)
+        {
+            for (size_t k = 0; k < this->layers[i]->nodes[j].weight.size(); k++)
+            {
+                this->layers[i]->nodes[j].weight[k] = sumNetwork->layers[i]->nodes[j].weight[k] / numClients;
+                // intermediateSum+=weight;
+            }
+            // cout<<"Hidden Layer "<<i<<" Node "<<j<<" Weight Sum: "<<intermediateSum<<endl;
+        }
+    }
+}
 
 NeuralNetwork::~NeuralNetwork()
 {

@@ -13,7 +13,7 @@
 // Constants
 //
 
-const int LEN_INPUTNODES = 10;
+const int LEN_INPUTNODES = 784;
 const int LEN_HIDDENNODES = 16;
 const int NUM_HIDDENLAYERS = 2;
 const int LEN_OUTPUTNODES = 10;

@@ -4,6 +4,7 @@
 #include <atomic>
 #include <vector>
 #include "../common/NeuralNetwork.h"
+#include "../common/pool.h"
 
 /// When a new client connection is accepted, this code will run to figure out
 /// what the client is requesting, and to dispatch to the right function for
@@ -13,4 +14,5 @@
 /// @param network The NeuralNetwork we are training with
 ///
 /// @return true if the server should halt immediately, false otherwise
-bool parse_request(int sd, NeuralNetwork *network, atomic<int> *trainingTreads);
+//bool parse_request(int sd, NeuralNetwork *network, atomic<int> *trainingTreads);
+bool parse_request(int sd, NeuralNetwork *network, NeuralNetwork *sumNetwork,thread_pool *pool);

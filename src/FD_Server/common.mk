@@ -11,7 +11,7 @@ LDFLAGS   = -m$(BITS) -lpthread  -ldl $(LDEXTRA)
 SOFLAGS   = -fPIC -shared
 
 # Hard-coded name of the solutions folder
-SDIR = obj64
+SDIR = solutions
 
 # Give a name to the output folder, and ensure it is created before any
 # compilation happens

@@ -22,6 +22,7 @@ public:
     float maxIndex = 0;
     NeuralNetwork();
     NeuralNetwork(int inputSize, int hiddenLayerSize, int outputSize, int hiddenLayers, vector<vector<float>> inputWeights, vector<vector<float>> hiddenWeights, vector<vector<float>> outputWeights);
+    NeuralNetwork(int inputSize, int hiddenLayerSize, int outputSize, int hiddenLayers);
     void CreateNetwork(int inputSize,int hiddenLayerSize, int outputSize, int hiddenLayers);
     int ForwardPropagateImage(MNIST_Image img);
     int ForwardPropagateSequential(MNIST_Image img);
@@ -40,7 +41,10 @@ public:
 
     vector<vector<float>> GetDistributedWeights(int inputSize, int outputSize);
     vector<uint8_t> ExtractWeights(string message);
+    void AddWeights(vector<uint8_t> msg);
+    void AverageWeights(NeuralNetwork *sumNetwork, int numClients);
     void UpdateWeights(vector<uint8_t> msg);
+    void ResetWeights();
 
     ~NeuralNetwork();
 };

@@ -2,7 +2,12 @@
 
 #include <functional>
 #include <memory>
-#include <atomic>
+#include <thread>
+#include <shared_mutex>
+#include <condition_variable>
+#include "NeuralNetwork.h"
+
+using namespace std;
 
 /// thread_pool encapsulates a pool of threads that are all waiting for data to
 /// appear in a queue.  Whenever data arrives in the queue, a thread will pull
@@ -16,10 +21,19 @@
 ///     solutions without sharing code.
 class thread_pool {
 public:
+  // Member Variables
+  thread modelUpdateThread;
+  atomic<int> *trainingTreads = new atomic<int>(0);
+  atomic<int> *respondedThreads = new atomic<int>(0);
+  shared_mutex modelLock;
+  mutex updateLock;
+  condition_variable updateCon;
+  NeuralNetwork *sumNetwork;
+  NeuralNetwork *network;
+  function<void()> test_func;
+
   /// destruct a thread pool
   virtual ~thread_pool(){};
-
-  std::atomic<int> *trainingTreads = 0;
 
   /// Allow a user of the pool to provide some code to run when the pool decides
   /// it needs to shut down.
@@ -48,4 +62,4 @@ public:
 ///
 /// @return A thread pool (technically a subclass of thread_pool that is not
 ///         abstract)
-thread_pool *pool_factory(int size, std::function<bool(int, std::atomic<int>*)> handler);
+thread_pool *pool_factory(int size, std::function<bool(int, thread_pool*)> handler,std::function<void()>, NeuralNetwork *network, NeuralNetwork *sumNetwork);
