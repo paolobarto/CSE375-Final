@@ -8,7 +8,7 @@
 #include <iostream>
 #include <random>
 #include <cmath>
-
+#include <cstring>
 
 class NeuralNetwork
 {

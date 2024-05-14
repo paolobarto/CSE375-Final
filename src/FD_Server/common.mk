@@ -6,7 +6,7 @@ BITS     ?= 64
 CXX       = g++
 LD        = g++
 # in the next two line, remove -m$(BITS) if you are running on an M1/M2 Mac
-CXXFLAGS  = -MMD -O3 -m$(BITS) -ggdb -std=gnu++20 -Wall -Werror -Wextra -fPIC $(CXXEXTRA)
+CXXFLAGS  = -MMD -O3 -m$(BITS) -ggdb -std=gnu++2a -Wall -Werror -Wextra -fPIC $(CXXEXTRA)
 LDFLAGS   = -m$(BITS) -lpthread  -ldl $(LDEXTRA)
 SOFLAGS   = -fPIC -shared
 

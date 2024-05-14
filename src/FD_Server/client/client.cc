@@ -9,6 +9,8 @@
 #include <fstream>
 #include <random>
 #include <algorithm>
+#include <strings.h>
+#include <chrono>
 
 #include "../common/contextmanager.h"
 #include "../common/protocol.h"
@@ -55,6 +57,8 @@ static vector<pair<string, const char *>> commands = {
 struct arg_t {
   string server = "";   // The IP or hostname of the server
   int port = 0;         // The port on which to connect to the server
+  int clientId = 1;
+  int clientCount = 1;
   // string keyfile = "";  // The file for storing the server's public key
   // string username = ""; // The user's name
   // string userpass = ""; // The user's password
@@ -72,7 +76,7 @@ struct arg_t {
   arg_t(int argc, char **argv) {
     // First, use getopt to parse the command-line arguments
     long opt;
-    while ((opt = getopt(argc, argv, "s:p:")) != -1) {
+    while ((opt = getopt(argc, argv, "s:p:c:g:")) != -1) {
       switch (opt) {
       case 'p': // port of server
         port = atoi(optarg);
@@ -81,11 +85,19 @@ struct arg_t {
         cout<<"server: "<<string(optarg)<<endl;
         server = string(optarg);
         break;
-      case '1': // first argument
-        arg1 = string(optarg);
+      case 'c':
+        cout<<"Client Id: "<<string(optarg)<<endl;
+        clientId = atoi(optarg);
         break;
-      case '2': // second argument
-        arg2 = string(optarg);
+      case 'g':
+        cout<<"Client Count: "<<string(optarg)<<endl;
+        clientCount = atoi(optarg);
+        break;
+      // case '1': // first argument
+      //   arg1 = string(optarg);
+      //   break;
+      // case '2': // second argument
+      //   arg2 = string(optarg);
       default: // on any error, print a help message.  This case subsumes `-h`
         throw 1;
         return;
@@ -188,7 +200,7 @@ int main(int argc, char **argv) {
   //   cout << "Error: File not found" << endl;
   //   return 1;
   // }
-  fstream trainFile("../../data/MNIST_CSV/mnist_train.csv", ios::in);
+  fstream trainFile("../../data/MNIST_CSV/mnist_test.csv", ios::in);
   if (!trainFile.is_open())
   {
     cout << "Error: Train File not found" << endl;
@@ -223,12 +235,13 @@ int main(int argc, char **argv) {
   network->PrintLayerAverage();
   // then train the network
   const int EPOCHS = 10;
-  const int DEBUGBATCH = 30000;
+  //const int DEBUGBATCH = 5000;
 
   for(int i=0; i<EPOCHS; i++)
   {
   cout << "-------- Epoch loop: " << i << endl;
-  shuffleVector(trainImages);
+
+  //shuffleVector(trainImages);
   int status = connect_to_server(clientSd, sendSockAddr);
   if (status < 0)
   {
@@ -237,12 +250,16 @@ int main(int argc, char **argv) {
     }
     cout<<"Client Sd: "<<*clientSd<<endl;
     cout<<"Requesting network from server."<<endl;
+    auto networkProcessTime = std::chrono::high_resolution_clock::now();
     req_network(*clientSd, network);
+    time_t reqNetworkTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - networkProcessTime).count();
+    cout<<"Req network Time: "<<reqNetworkTime<<endl;
     //return 1;
     cout<<"Network updated to: "<<endl;
     network->PrintLayerAverage();
     cout<<"Epoch "<<i+1<<" started."<<endl;
-    for(size_t j=0; j<DEBUGBATCH; j++)
+    auto trainTime = std::chrono::high_resolution_clock::now();
+    for(size_t j=args->clientId; j<trainImages.size(); j+=args->clientCount)
     {           
         int value = network->ForwardPropagateImage(trainImages[j]);
         if(value == -100)
@@ -255,13 +272,14 @@ int main(int argc, char **argv) {
           network->BackPropagateImage(trainImages[j]);
         }
 
-        if(j%10000==0){
-          cout<<"Batch "<<j<<" finished."<<endl;
-          network->PrintLayerAverage();
-        }
-
+        // if(j%10000==0){
+        //   cout<<"Batch "<<j<<" finished."<<endl;
+        //   network->PrintLayerAverage();
+        // }
         network->ResetValues();
     }
+    time_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - trainTime).count();
+    cout<<"Time for train: "<<elapsed<<endl;
     cout<<"Epoch "<<i+1<<" finished."<<endl;
     cout<<"Sending updated weights to server."<<endl;
     status = connect_to_server(clientSd, sendSockAddr);
@@ -270,7 +288,10 @@ int main(int argc, char **argv) {
       cout<<"Error connecting to server."<<endl;
       return 1;
     }
+    auto update_time = std::chrono::high_resolution_clock::now();
     req_update(*clientSd, network);
+    time_t update_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - update_time).count();
+    cout<<"Time Dormant: "<<update_elapsed<<endl;
   }
 
 

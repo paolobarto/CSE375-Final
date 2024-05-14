@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <fstream>
+#include <signal.h>
 
 #include "../common/contextmanager.h"
 //#include "../common/crypto.h"
