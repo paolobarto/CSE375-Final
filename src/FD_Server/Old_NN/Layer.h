@@ -8,14 +8,12 @@ class Layer
 {
 private:
     // Since we can assume will be fully connected, we can just store the nodes of the previous layer
-    vector<Node *> prevLayerNodes;
+    vector<Node> prevLayerNodes;
 public:
-    vector<Node *> nodes;
-    vector<vector<float> *> weightMatrix;
-    vector<float> bias;
-    Layer(vector<Node *> previousNodes = vector<Node *>());
+    vector<Node> nodes;
+    Layer(vector<Node> previousNodes = vector<Node>());
     void ResetNodes();
-    void addNode(Node *node);
+    void addNode(Node node);
     void appendLayer(Layer layer);
     ~Layer();
 };

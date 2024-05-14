@@ -5,7 +5,7 @@ Node::Node()
 {
     id = 0;
     layer = 0;
-    weight = new vector<float>();
+    weight = vector<float>();
     prevNodes = vector<Node *>();
     nextNodes = vector<Node>();
 }
@@ -14,21 +14,21 @@ Node::Node(int id, int layer)
 {
     this->id = id;
     this->layer = layer;
-    weight = new vector<float>();
+    weight = vector<float>();
     prevNodes = vector<Node *>();
     nextNodes = vector<Node>();
 }
 
-Node::Node(int id, int layer, vector<float> *weight)
+Node::Node(int id, int layer, vector<float> weight)
 {
     this->id = id;
     this->layer = layer;
-    this->weight =  weight;
+    this->weight = weight;
     prevNodes = vector<Node *>();
     nextNodes = vector<Node>();
 }
 
-Node::Node(int id, int layer, vector<float> *weight, vector<Node *> prevNodes)
+Node::Node(int id, int layer, vector<float> weight, vector<Node *> prevNodes)
 {
     this->id = id;
     this->layer = layer;
@@ -40,7 +40,7 @@ Node::Node(int id, int layer, vector<float> *weight, vector<Node *> prevNodes)
 
 float Node::CalculateOutput(float input, int nextNodeIndex, float (*activationFunction)(float))
 {
-    this->value =  activationFunction(input * weight->at(nextNodeIndex));
+    this->value =  activationFunction(input * weight[nextNodeIndex]);
    return this->value;
 }
 

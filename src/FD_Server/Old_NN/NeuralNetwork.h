@@ -8,12 +8,12 @@
 #include <iostream>
 #include <random>
 #include <cmath>
-#include <chrono>
+#include <cstring>
 
 class NeuralNetwork
 {
 private:
-    float LEARNING_RATE = 0.3;
+    float LEARNING_RATE = 0.1;
     Layer input;
     Layer output;
     vector<Layer *> layers;
@@ -25,20 +25,11 @@ public:
     NeuralNetwork(int inputSize, int hiddenLayerSize, int outputSize, int hiddenLayers);
     void CreateNetwork(int inputSize,int hiddenLayerSize, int outputSize, int hiddenLayers);
     int ForwardPropagateImage(MNIST_Image img);
-
-    float FeedForward(MNIST_Image img);
-    void Train(MNIST_Image img);
-    vector<vector<float>> dotProduct(vector<vector<float>> a, vector<vector<float>> b);
-    vector<vector<float>> transpose(vector<vector<float>> a);
-    void PrintLoss(MNIST_Image img);
-    int Predict(MNIST_Image img);
-    int ArgMax(vector<float> vec);
-
-    // int ForwardPropagateSequential(MNIST_Image img);
-    // float BackPropagateImage(MNIST_Image img);
-    // float BackPropagateRecursive(Node *target, float error, float runningInflunce, float runningChangeTotal);
-    // void BackPropagateRecursiveArchive(Node *target, int error, float runningInflunce);
-    // float BackPropagateLogging(Node *target, float error, float runningInflunce);
+    int ForwardPropagateSequential(MNIST_Image img);
+    float BackPropagateImage(MNIST_Image img);
+    float BackPropagateRecursive(Node *target, float error, float runningInflunce, float runningChangeTotal);
+    void BackPropagateRecursiveArchive(Node *target, int error, float runningInflunce);
+    float BackPropagateLogging(Node *target, float error, float runningInflunce);
     void ResetValues();
     void AddLayer(Layer& layer);
     void UpdateLastHidden();
@@ -49,7 +40,6 @@ public:
     float GetRandomWeight();
 
     vector<vector<float>> GetDistributedWeights(int inputSize, int outputSize);
-    vector<float> GetDistributedBias(int size);
     vector<uint8_t> ExtractWeights(string message);
     void AddWeights(vector<uint8_t> msg);
     void AverageWeights(NeuralNetwork *sumNetwork, int numClients);
