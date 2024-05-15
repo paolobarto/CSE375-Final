@@ -3,3 +3,4 @@ data/MNIST_CSV/mnist_test.csv
 data/MNIST_CSV/mnist_train.csv
 src/FD_Server/obj64/*
 obj32/
+src/FD_Server/New_NN/obj64/*

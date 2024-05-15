@@ -30,7 +30,7 @@ public:
     bool tempsh = false;
     while(!shutdown.load()){
       unique_lock<std::mutex> lk(this->lock); // locks the mutex
-      cout<<"waiting"<<endl;
+      //cout<<"waiting"<<endl;
       this->con.wait(lk, [&](){return shutdown.load() || !connections.empty();}); //waits for a condition variable to tell that there are items in queue, then locks
       if(!this->connections.empty()){
         sd = this->connections.front(); //gets the first socket in queue, and saves it to sd
@@ -47,7 +47,6 @@ public:
       }
       
       if(sd != -1){
-        cout<<"Closing Socket"<<endl;
         close(sd);
       }
     }
@@ -126,13 +125,12 @@ public:
     {
       if(this->trainingTreads->load()>0 && this->respondedThreads->load() == this->trainingTreads->load())
       {
-        cout<<"Models Responded\n";
         //unique_lock<shared_mutex> lk(this->modelLock);
         this->modelLock.lock();
         //update the model
         //this->sumNetwork->UpdateModel(this.trainingTreads->load());
         this->network->AverageWeights(this->sumNetwork, this->trainingTreads->load());
-        this->network->PrintLayerAverage();
+        //this->network->PrintLayerAverage();
 
         this->test_func();
 

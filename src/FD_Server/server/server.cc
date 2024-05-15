@@ -112,11 +112,11 @@ int main(int argc, char **argv) {
 
 
   NeuralNetwork *network = new NeuralNetwork();
-  network->CreateNetwork(784, 16, 10, 2);
-  network->PrintLayerAverage();
+  network->CreateNetwork(784, 100, 10, 1);
+  //network->PrintLayerAverage();
 
   NeuralNetwork *sumNetwork = new NeuralNetwork();
-  sumNetwork->CreateNetwork(784, 16, 10, 2);
+  sumNetwork->CreateNetwork(784, 100, 10, 1);
   sumNetwork->ResetWeights();
 
 
@@ -131,7 +131,11 @@ int main(int argc, char **argv) {
   servAddr.sin_addr.s_addr = htonl(INADDR_ANY);
   servAddr.sin_port = htons(args->port);
 
+  int opt = 1;
+  socklen_t optlen = sizeof(opt);
   sd = socket(AF_INET, SOCK_STREAM, 0);
+  setsockopt(sd,SOL_SOCKET,SO_REUSEADDR|SO_REUSEPORT,&opt,optlen);
+
 
   if (sd < 0) {
     perror("socket() failed");
@@ -152,17 +156,19 @@ int main(int argc, char **argv) {
   thread_pool *pool = pool_factory(args->threads, [&](int sd, thread_pool *poolParam) {
     return parse_request(sd, network, sumNetwork, poolParam);
   }, [&](){
-    int correctAnswers = 0;
+    float correctAnswers = 0;
+    //network->PrintLayerAverage();
     for(size_t i=0;i<testImages.size();i++)
     {
-      int guess = network->ForwardPropagateImage(testImages[i]);
+      int guess = network->Predict(testImages[i]);
+      //cout<<"Index: "<<i<<" Guess: "<<guess<<endl;
       if(guess == testImages[i].label)
       {
         correctAnswers++;
       }
     }
-    cout<<"Correct Answers: "<<correctAnswers<<endl;
-
+    //cout<<"Correct Answers: "<<correctAnswers<<endl;
+    cout<<correctAnswers/10000<<endl;
   }, network, sumNetwork);
 
   pool->set_shutdown_handler([&]() {

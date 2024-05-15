@@ -34,7 +34,6 @@ void shuffleVector(std::vector<MNIST_Image> &vec)
 
 int connect_to_server(int *&sd, sockaddr_in &sendSockAddr)
 {
-  cout<<"Sd before: "<<*sd<<endl;
   *sd = socket(AF_INET, SOCK_STREAM, 0);
   int status = connect(*sd,
                        (sockaddr *)&sendSockAddr, sizeof(sendSockAddr));
@@ -43,7 +42,7 @@ int connect_to_server(int *&sd, sockaddr_in &sendSockAddr)
     cout << "Error connecting to socket!" << endl;
     return -1;
   }
-  cout << "Connected to the server!" << endl;
+  
   return 0;
 }
 
@@ -224,22 +223,22 @@ int main(int argc, char **argv) {
   //cout << testImages.size() << endl;
   cout << trainImages.size() << endl;
 
-  cout<<"Shuffling training data."<<endl;
-  shuffleVector(trainImages);
+  // cout<<"Shuffling training data."<<endl;
+  // shuffleVector(trainImages);
 
   // train loop
   // first get the weights of the current network
-  cout<<"Creating Neural Network."<<endl;
+  //cout<<"Creating Neural Network."<<endl;
   NeuralNetwork *network = new NeuralNetwork();
   network->CreateNetwork(LEN_INPUTNODES, LEN_HIDDENNODES, LEN_OUTPUTNODES, NUM_HIDDENLAYERS);
-  network->PrintLayerAverage();
+  //network->PrintLayerAverage();
   // then train the network
-  const int EPOCHS = 10;
+  const int EPOCHS = 100;
   //const int DEBUGBATCH = 5000;
 
   for(int i=0; i<EPOCHS; i++)
   {
-  cout << "-------- Epoch loop: " << i << endl;
+  //cout << "-------- Epoch loop: " << i << endl;
 
   //shuffleVector(trainImages);
   int status = connect_to_server(clientSd, sendSockAddr);
@@ -248,40 +247,43 @@ int main(int argc, char **argv) {
     cout << "Error connecting to server." << endl;
     return 1;
     }
-    cout<<"Client Sd: "<<*clientSd<<endl;
-    cout<<"Requesting network from server."<<endl;
-    auto networkProcessTime = std::chrono::high_resolution_clock::now();
-    req_network(*clientSd, network);
-    time_t reqNetworkTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - networkProcessTime).count();
-    cout<<"Req network Time: "<<reqNetworkTime<<endl;
+    //auto networkProcessTime = std::chrono::high_resolution_clock::now();
+    if(i==0)
+      req_network(*clientSd, network);
+    //time_t reqNetworkTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - networkProcessTime).count();
     //return 1;
-    cout<<"Network updated to: "<<endl;
-    network->PrintLayerAverage();
-    cout<<"Epoch "<<i+1<<" started."<<endl;
+    //network->PrintLayerAverage();
     auto trainTime = std::chrono::high_resolution_clock::now();
-    for(size_t j=args->clientId; j<trainImages.size(); j+=args->clientCount)
+    int partitionSize = trainImages.size()/args->clientCount;
+    int start = partitionSize*(args->clientId-1);
+    int end = start + partitionSize;
+    for(int j=start; j<end; j++)
     {           
-        int value = network->ForwardPropagateImage(trainImages[j]);
-        if(value == -100)
-        {
-          cout<<"Error in Forward Propagation"<<endl;
-          return 1;
-        }
-        if(value != trainImages[j].label) {
+        //int value = network->ForwardPropagateImage(trainImages[j]);
+        network->FeedForward(trainImages[j]);
+        // if(value == -100)
+        // {
+        //   cout<<"Error in Forward Propagation"<<endl;
+        //   return 1;
+        // }
+        //if(value != trainImages[j].label) {
 
-          network->BackPropagateImage(trainImages[j]);
-        }
+        //network->BackPropagateImage(trainImages[j]);
+        network->Train(trainImages[j]);
+        //}
 
         // if(j%10000==0){
         //   cout<<"Batch "<<j<<" finished."<<endl;
         //   network->PrintLayerAverage();
         // }
-        network->ResetValues();
+        //network->ResetValues();
     }
+    // Debug to check if correctness is reflected on server
+    //network->PrintLayerAverage();
+
+
     time_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - trainTime).count();
-    cout<<"Time for train: "<<elapsed<<endl;
-    cout<<"Epoch "<<i+1<<" finished."<<endl;
-    cout<<"Sending updated weights to server."<<endl;
+    //cout<<"Time for train: "<<elapsed<<endl;
     status = connect_to_server(clientSd, sendSockAddr);
     if(status < 0)
     {
@@ -291,7 +293,9 @@ int main(int argc, char **argv) {
     auto update_time = std::chrono::high_resolution_clock::now();
     req_update(*clientSd, network);
     time_t update_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - update_time).count();
-    cout<<"Time Dormant: "<<update_elapsed<<endl;
+    //cout<<"Time Dormant: "<<update_elapsed<<endl;
+
+    cout<<elapsed<<","<<update_elapsed<<endl;
   }
 
 

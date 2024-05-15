@@ -59,8 +59,6 @@ vector<uint8_t> NeuralNetwork::ExtractWeights(string message)
     // cout<<"input weight size: "<<this->input.nodes[0]->weight->size()<<endl;
     // cout<<"Size per float: "<<sizeof(float)<<endl;
     // cout<<"input size: "<<this->input.nodes.size()<<endl;
-    vector<uint8_t> bias_values;
-
     for(size_t i=0;i<this->input.nodes.size();i++)
     {
         for(size_t j=0;j<this->input.nodes[i]->weight->size();j++)
@@ -77,11 +75,6 @@ vector<uint8_t> NeuralNetwork::ExtractWeights(string message)
             //}
             
         }
-        uint8_t buffer[sizeof(float)];
-        // Copy the memory representation of the float to the buffer
-        std::memcpy(buffer, &this->input.bias[i], sizeof(float));
-        // Append the bytes from the buffer to the vector
-        bias_values.insert(bias_values.end(), buffer, buffer + sizeof(float));
     }
 
    // cout<<"Input Layer Weights: "<<msg.size()<<endl;
@@ -98,12 +91,6 @@ vector<uint8_t> NeuralNetwork::ExtractWeights(string message)
                     msg.push_back(((uint8_t*)&weight)[l]);
                 }
             }
-
-        uint8_t buffer[sizeof(float)];
-        // Copy the memory representation of the float to the buffer
-        std::memcpy(buffer, &this->layers[i]->bias[j], sizeof(float));
-        // Append the bytes from the buffer to the vector
-        bias_values.insert(bias_values.end(), buffer, buffer + sizeof(float));
         }
     }
 
@@ -119,15 +106,8 @@ vector<uint8_t> NeuralNetwork::ExtractWeights(string message)
                 msg.push_back(((uint8_t*)&weight)[k]);
             }
         }
-        uint8_t buffer[sizeof(float)]; 
-        // Copy the memory representation of the float to the buffer
-        std::memcpy(buffer, &this->layers[layers.size()-1]->bias[i], sizeof(float));
-        // Append the bytes from the buffer to the vector
-        bias_values.insert(bias_values.end(), buffer, buffer + sizeof(float));    
     }
-
-    msg.insert(msg.end(), bias_values.begin(), bias_values.end());
-
+   // cout<<"Plus Output Layer Weights: "<<msg.size()<<endl;
     return msg;
 }
 
@@ -570,6 +550,7 @@ int NeuralNetwork::Predict(MNIST_Image img)
     {
         outputValues.push_back(this->output.nodes[i]->value);
     }
+
     return this->ArgMax(outputValues);
 }
 
@@ -1052,7 +1033,6 @@ void NeuralNetwork::PrintLayerAverage()
 {
     float sum = 0;
     float weightSum = 0;
-    float biasSum = 0;
 
 
     for(size_t i=0; i<this->input.nodes.size();i++)
@@ -1062,18 +1042,15 @@ void NeuralNetwork::PrintLayerAverage()
         {
             weightSum+=this->input.nodes[i]->weight->at(j);
         }
-        biasSum += this->input.bias[i];
     }
     cout<<"Debug Weight Sum: "<<weightSum<<endl;
     cout<<"Input Layer Value Average: "<<sum/this->input.nodes.size()<<endl;
     cout<<"Input Layer Weight Average: "<<weightSum/(this->input.nodes.size()*this->input.nodes[0]->weight->size())<<endl;
-    cout<<"Bias sum: "<<biasSum<<endl;
 
     for(size_t i=0; i<this->layers.size();i++)
     {
         sum = 0;
         weightSum = 0;
-        biasSum = 0;
         for(size_t j=0; j<this->layers[i]->nodes.size();j++)
         {
             sum+=this->layers[i]->nodes[j]->value;
@@ -1081,17 +1058,13 @@ void NeuralNetwork::PrintLayerAverage()
             for(size_t k=0; k<this->layers[i]->nodes[j]->weight->size();k++)
             {
                 weightSum+=this->layers[i]->nodes[j]->weight->at(k);
-                //cout<<this->layers[i]->nodes[j]->weight->at(k)<<" "<<endl;
             }
-            biasSum += this->layers[i]->bias[j];
             
         }
         cout<<endl;
         cout<<"Hidden Layer "<<i+1<<" Average: "<<sum/this->layers[i]->nodes.size()<<endl;
         cout<<"Hidden Layer "<<i+1<<" Weight Average: "<<weightSum/(this->layers[i]->nodes.size()*this->layers[i]->nodes[0]->weight->size())<<endl;
         cout<<"Debug Weight Sum: "<<weightSum<<endl;
-        cout<<"Bias sum: "<<biasSum<<endl;
-
     }
 
     sum = 0;
@@ -1123,6 +1096,13 @@ float NeuralNetwork::DerivativeRELU(float x)
 void NeuralNetwork::UpdateWeights(vector<uint8_t> msg)
 {
     ResetValues();
+
+    // cout<<"First 3 bytes:"<<endl;
+    // for(size_t i=0; i<sizeof(float)*3;i++)
+    // {
+    //     cout<<(int)msg[i]<<endl;
+    // }
+
 
     int byteIndex = 8;
        // cout<<"input nodes size: "<<this->input.nodes.size()<<endl;
@@ -1199,25 +1179,6 @@ void NeuralNetwork::UpdateWeights(vector<uint8_t> msg)
         }
     }
 
-    for(size_t i=0;i<this->input.nodes.size(); i++)
-    {
-        float biasValue = 0;
-        memcpy(&biasValue, msg.data() + byteIndex, sizeof(float));
-        byteIndex += sizeof(float);
-        this->input.bias[i] = biasValue;
-    }
-
-    for(size_t i=0; i<this->layers.size();i++)
-    {
-        for(size_t j=0; j<this->layers[i]->nodes.size(); j++)
-        {
-            float biasValue = 0;
-            memcpy(&biasValue, msg.data() + byteIndex, sizeof(float));
-            byteIndex += sizeof(float);
-            this->layers[i]->bias[j] = biasValue;
-        }
-    }
-
 }
 
 // void addWeights(vector<uint8_t> msg);
@@ -1266,29 +1227,17 @@ void NeuralNetwork::AddWeights(vector<uint8_t> msg)
      //   cout << "Hidden Layer " << i << " Weight Sum: " << weightSum << endl;
     }
 
-    //byte index is at weight limit
-    vector<float> inputBias;
-    for(size_t i=0;i<this->input.nodes.size(); i++)
-    {
-        float biasValue = 0;
-        memcpy(&biasValue, msg.data() + byteIndex, sizeof(float));
-        byteIndex += sizeof(float);
-        this->input.bias[i] += biasValue;
-
-    }
-
-    for(size_t i=0; i<this->layers.size();i++)
-    {
-        for(size_t j=0; j<this->layers[i]->nodes.size(); j++)
-        {
-            float biasValue = 0;
-            memcpy(&biasValue, msg.data() + byteIndex, sizeof(float));
-            byteIndex += sizeof(float);
-
-            this->layers[i]->bias[i] += biasValue;
-        }
-    }
-
+    // for (size_t i = 0; i < this->output.nodes.size(); i++)
+    // {
+    //     for (size_t j = 0; j < this->output.nodes[i]->weight->size(); j++)
+    //     {
+    //         float weight = 0;
+    //         memcpy(&weight, msg.data() + byteIndex, sizeof(float));
+    //         byteIndex += sizeof(float);
+    //         this->output.nodes[i]->weight[j] = weight;
+    //         weightSum += weight;
+    //     }
+    // }
 }
 
 void NeuralNetwork::ResetWeights()
@@ -1299,7 +1248,6 @@ void NeuralNetwork::ResetWeights()
         {
             this->input.nodes[i]->weight->at(j) = 0;
         }
-        this->input.bias[i] = 0;
     }
 
     for(size_t i=0; i<this->layers.size(); i++)
@@ -1310,39 +1258,36 @@ void NeuralNetwork::ResetWeights()
             {
                 this->layers[i]->nodes[j]->weight->at(k) = 0;
             }
-            this->layers[i]->bias[j] = 0;
         }
     }
 
 }
 
-void NeuralNetwork::AverageWeights(NeuralNetwork *sumNetwork, int numClients)
-{
-    for (size_t i = 0; i < this->input.nodes.size(); i++)
-    {
-        for (size_t j = 0; j < this->input.nodes[i]->weight->size(); j++)
-        {
-            // return floatValue;
-            this->input.nodes[i]->weight->at(j) = sumNetwork->input.nodes[i]->weight->at(j) / numClients;
-        }
-         this->input.bias[i] = this->input.bias[i] / numClients;
-    }
-
-
-    for (size_t i = 0; i < this->layers.size(); i++)
-    {
-        for (size_t j = 0; j < this->layers[i]->nodes.size(); j++)
-        {
-            for (size_t k = 0; k < this->layers[i]->nodes[j]->weight->size(); k++)
-            {
-                this->layers[i]->nodes[j]->weight->at(k) = sumNetwork->layers[i]->nodes[j]->weight->at(k) / numClients;
-                // intermediateSum+=weight;
-            }
-            // cout<<"Hidden Layer "<<i<<" Node "<<j<<" Weight Sum: "<<intermediateSum<<endl;
-            this->layers[i]->bias[j] =  this->layers[i]->bias[j] / numClients;
-        }
-    }
-}
+// void NeuralNetwork::AverageWeights(NeuralNetwork *sumNetwork, int numClients)
+// {
+//     for (size_t i = 0; i < this->input.nodes.size(); i++)
+//     {
+//         for (size_t j = 0; j < this->input.nodes[i]->weight->size(); j++)
+//         {
+//             // return floatValue;
+//             this->input.nodes[i]->weight[j] = sumNetwork->input.nodes[i]->weight[j] / numClients;
+//         }
+//     }
+//     // cout << "Input Layer Weight Sum: " << weightSum << endl;
+//     //  float intermediateSum = 0;
+//     for (size_t i = 0; i < this->layers.size(); i++)
+//     {
+//         for (size_t j = 0; j < this->layers[i]->nodes.size(); j++)
+//         {
+//             for (size_t k = 0; k < this->layers[i]->nodes[j]->weight->size(); k++)
+//             {
+//                 this->layers[i]->nodes[j]->weight[k] = sumNetwork->layers[i]->nodes[j]->weight[k] / numClients;
+//                 // intermediateSum+=weight;
+//             }
+//             // cout<<"Hidden Layer "<<i<<" Node "<<j<<" Weight Sum: "<<intermediateSum<<endl;
+//         }
+//     }
+// }
 
 float dotProduct(vector<float> a, vector<float> b)
 {

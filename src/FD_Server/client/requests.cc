@@ -10,6 +10,20 @@
 
 #include "requests.h"
 
+// ./obj64/client.exe -p 8080 -s 127.0.0.1 -c 1 -g 12
+// ./obj64/client.exe -p 8080 -s 127.0.0.1 -c 2 -g 12
+// ./obj64/client.exe -p 8080 -s 127.0.0.1 -c 3 -g 12
+// ./obj64/client.exe -p 8080 -s 127.0.0.1 -c 4 -g 12
+// ./obj64/client.exe -p 8080 -s 127.0.0.1 -c 5 -g 12
+// ./obj64/client.exe -p 8080 -s 127.0.0.1 -c 6 -g 12
+// ./obj64/client.exe -p 8080 -s 127.0.0.1 -c 7 -g 12
+// ./obj64/client.exe -p 8080 -s 127.0.0.1 -c 8 -g 12
+// ./obj64/client.exe -p 8080 -s 127.0.0.1 -c 9 -g 12
+// ./obj64/client.exe -p 8080 -s 127.0.0.1 -c 10 -g 12
+// ./obj64/client.exe -p 8080 -s 127.0.0.1 -c 11 -g 12
+// ./obj64/client.exe -p 8080 -s 127.0.0.1 -c 12 -g 12
+
+
 
 using namespace std;
 
@@ -21,17 +35,14 @@ void req_network(int sd, NeuralNetwork *network)
   vector<uint8_t> msg(REQ_TRAIN.begin(), REQ_TRAIN.end());
 
   msg.resize(LEN_DATABLOCK+8, '\0');
-  cout<<"Message Requesting Train Size: "<<msg.size()<<endl;
   bool success = send(sd, msg.data(), LEN_DATABLOCK+8, 0);
   if(!success)
   {
     cout << "Error sending message" << endl;
     return;
   }
-  cout<<"Message Sent"<<endl;
 
   vector<uint8_t> response(LEN_DATABLOCK + 8);
-  cout<<"Size of response empty: "<<response.size()<<endl;
 
   // int BUFFER_SIZE = LEN_DATABLOCK + 8;
   // uint8_t buffer[BUFFER_SIZE];
@@ -55,6 +66,9 @@ void req_network(int sd, NeuralNetwork *network)
   int total = 0;
   while (remain)
   {
+    // if(total >= LEN_DATABLOCK)
+    //   break;
+
     int rcd = recv(sd, next_byte, remain, 0);
     if (rcd <= 0)
     {
@@ -69,11 +83,9 @@ void req_network(int sd, NeuralNetwork *network)
     }
   }
   //return total;
-  cout<<"Size of total: "<<total<<endl;
 
   //recv(sd, response.data(), LEN_DATABLOCK + 8, 0); 
-  cout<<"Size of returned NN: "<<response.size()<<endl;
-  cout<<"Updating Weights"<<endl;
+
   network->UpdateWeights(response);
 }
 
@@ -85,14 +97,12 @@ void req_update(int sd, NeuralNetwork *network)
 
   msg = network->ExtractWeights(REQ_UPDT);
 
-  cout<<"Sending Updated Weights"<<endl;
   bool success = send(sd, msg.data(), LEN_DATABLOCK+8, 0);
   if(!success)
   {
     cout << "Error sending message" << endl;
     return;
   }
-  cout<<"Message Sent"<<endl;
   vector<uint8_t> response(LEN_DATABLOCK + 8);
 
   int remain = (int)response.size();
@@ -100,6 +110,8 @@ void req_update(int sd, NeuralNetwork *network)
   int total = 0;
   while (remain)
   {
+    // if(total >=8 + LEN_DATABLOCK)
+    //   break;
     int rcd = recv(sd, next_byte, remain, 0);
     
     string cmd(response.begin(), response.begin() + 8);
@@ -120,9 +132,6 @@ void req_update(int sd, NeuralNetwork *network)
       remain -= rcd;
       total += rcd;
     }
-    cout << "Size of total: " << total << endl; 
-    cout << "Size of returned NN: " << response.size() << endl;
-    cout << "Updating Weights" << endl;
     network->UpdateWeights(response);
   }
 }

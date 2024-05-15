@@ -27,7 +27,6 @@ using namespace std;
 
 bool parse_request(int sd, NeuralNetwork *network, NeuralNetwork *sumNetwork,thread_pool *pool)
 {
-    cout<<"Parsing request\n";
     // get RKBlock off the socket
     vector<uint8_t> msg(8+LEN_DATABLOCK);
 
@@ -54,9 +53,7 @@ bool parse_request(int sd, NeuralNetwork *network, NeuralNetwork *sumNetwork,thr
         if (dataConsumed >= 8 + LEN_DATABLOCK)
             break;
     }
-    cout<<"Size of message Recieved: "<<dataConsumed<<endl;
     string cmd(msg.begin(), msg.begin() + 8);
-    cout<<"\nCommand: "<<cmd<<endl;
 
 
     // Iterate through possible commands, pick the right one, run it
